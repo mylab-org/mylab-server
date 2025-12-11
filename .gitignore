@@ -1,0 +1,156 @@
+# ================================
+# Dependencies
+# ================================
+node_modules/
+jspm_packages/
+bower_components/
+web_modules/
+
+# ================================
+# Build & Output
+# ================================
+/dist
+/build
+build/Release
+out/
+.next
+.nuxt
+.svelte-kit
+.docusaurus
+.vuepress/dist
+
+# ================================
+# Logs
+# ================================
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ================================
+# Runtime & Process
+# ================================
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ================================
+# Test & Coverage
+# ================================
+/coverage
+*.lcov
+/.nyc_output
+lib-cov
+
+# ================================
+# Cache
+# ================================
+.cache
+.parcel-cache
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.npm
+.grunt
+.fusebox/
+
+# ================================
+# Environment Variables
+# ================================
+.env
+.env.local
+.env.*.local
+
+# ================================
+# IDE - JetBrains (WebStorm, IntelliJ)
+# ================================
+.idea/
+*.iws
+*.iml
+*.ipr
+cmake-build-*/
+.idea_modules/
+
+# ================================
+# IDE - VSCode
+# ================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ================================
+# OS - macOS
+# ================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+*.icloud
+Icon?
+
+# ================================
+# OS - Windows
+# ================================
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ================================
+# Yarn
+# ================================
+.yarn/*
+!.yarn/releases
+!.yarn/patches
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.yarn-integrity
+.pnp.*
+
+# ================================
+# Temp & Misc
+# ================================
+.temp
+.tmp
+*.tgz
+.node_repl_history
+.lock-wscript
+.serverless/
+.dynamodb/
+.tern-port
+.vscode-test
+.webpack/
