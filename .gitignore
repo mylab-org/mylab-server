@@ -70,6 +70,7 @@ lib-cov
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # ================================
 # IDE - JetBrains (WebStorm, IntelliJ)
@@ -155,3 +156,4 @@ $RECYCLE.BIN/
 .vscode-test
 .webpack/
 /generated/prisma
+generated/
