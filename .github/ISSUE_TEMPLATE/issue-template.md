@@ -1,7 +1,7 @@
 ---
 name: Issue template
 about: Describe this issue template's purpose here.
-title: "[Tag]: Title"
+title: "[Tag] Issue title"
 labels: ''
 assignees: ''
 
