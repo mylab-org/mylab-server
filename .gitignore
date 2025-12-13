@@ -156,3 +156,4 @@ $RECYCLE.BIN/
 .vscode-test
 .webpack/
 /generated/prisma
+generated/
