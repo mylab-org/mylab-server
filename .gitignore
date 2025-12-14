@@ -154,4 +154,9 @@ $RECYCLE.BIN/
 .tern-port
 .vscode-test
 .webpack/
+
+# prisma
+prisma/migrations/*
+!prisma/migrations/0_init
 /generated/prisma
+generated/
