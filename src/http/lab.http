@@ -1,0 +1,9 @@
+### 연구실 생성 - 성공
+POST http://localhost:8080/api/lab
+Content-Type: application/json
+
+{
+  "schoolName": "Test School",
+  "departmentName": "Test department",
+  "labName": "Test Lab"
+}
