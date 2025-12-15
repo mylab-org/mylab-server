@@ -1,11 +1,11 @@
 generator client {
   provider     = "prisma-client"
+  output       = "../src/generated"
   moduleFormat = "esm"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model conferences {
@@ -210,8 +210,7 @@ model users {
   phone                                 String          @unique
   password                              String
   name                                  String
-  degree                                String?
-  position                              String?
+  degree                                String?         @default("BACHELOR")
   professor_email                       String?         @unique
   professor_status                      String          @default("NONE")
   created_at                            DateTime        @default(now()) @db.Timestamptz(6)

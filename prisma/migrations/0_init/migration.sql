@@ -21,12 +21,9 @@ CREATE TABLE users
     phone            TEXT UNIQUE NOT NULL,
     password         TEXT        NOT NULL,
     name             TEXT        NOT NULL,
-    degree           TEXT,
-    position         TEXT,
-
+    degree           TEXT                 DEFAULT 'BACHELOR',
     professor_email  TEXT UNIQUE,
     professor_status TEXT        NOT NULL DEFAULT 'NONE',
-
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
 
@@ -41,6 +38,8 @@ CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE
     ON users
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+INSERT INTO public.users (id, username, phone, password, name, degree, professor_email, professor_status, created_at, updated_at) VALUES (1, 'test1234', '01012341234', 'test1234', '김교수', 'PROFESSOR', 'prof@univ.ac.kr', 'VERIFIED', default, default);
 
 
 CREATE TABLE labs
