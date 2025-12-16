@@ -27,6 +27,7 @@ CREATE TABLE users
     professor_status TEXT        NOT NULL DEFAULT 'NONE',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    refresh_token    TEXT,
 
     CONSTRAINT chk_professor_email_status CHECK (
         (professor_status = 'NONE' AND professor_email IS NULL)
@@ -45,9 +46,10 @@ CREATE TRIGGER trg_users_updated_at
 EXECUTE FUNCTION set_updated_at();
 
 -- Test User (password: password123)
-INSERT INTO public.users (id, username, phone, password, name, degree, professor_email, professor_status, created_at,
+INSERT INTO public.users (username, phone, password, name, degree, professor_email, professor_status, created_at,
                           updated_at)
-VALUES (1, 'test1234', '01012341234', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR', 'prof@univ.ac.kr', 'VERIFIED', default, default);
+VALUES ('test1234', '01012341234', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR',
+        'prof@univ.ac.kr', 'VERIFIED', default, default);
 
 CREATE TABLE labs
 (

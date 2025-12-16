@@ -11,12 +11,12 @@ import { USER_ERROR } from '../../constants/user.error.js';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserRequestDto {
-  @ApiProperty({ example: 'john123', description: '아이디' })
+  @ApiProperty({ example: 'newuser1', description: '아이디' })
   @IsString()
   @IsNotEmpty({ message: USER_ERROR.USERNAME_REQUIRED.message })
   username: string;
 
-  @ApiProperty({ example: '01012345678', description: '전화번호 (010으로 시작, 11자리)' })
+  @ApiProperty({ example: '01055556666', description: '전화번호 (010으로 시작, 11자리)' })
   @IsString()
   @IsNotEmpty({ message: USER_ERROR.PHONE_REQUIRED.message })
   @Matches(/^010[0-9]{8}$/, { message: USER_ERROR.PHONE_INVALID.message })
@@ -28,7 +28,7 @@ export class CreateUserRequestDto {
   @MinLength(8, { message: USER_ERROR.PASSWORD_TOO_SHORT.message })
   password: string;
 
-  @ApiProperty({ example: '홍길동', description: '이름' })
+  @ApiProperty({ example: '이교수', description: '이름' })
   @IsString()
   @IsNotEmpty({ message: USER_ERROR.NAME_REQUIRED.message })
   name: string;
@@ -44,7 +44,7 @@ export class CreateUserRequestDto {
   degree: string;
 
   @ApiProperty({
-    example: 'prof@univ.ac.kr',
+    example: 'newprof@univ.ac.kr',
     required: false,
     description: '교수 이메일 (교수만 필수)',
   })

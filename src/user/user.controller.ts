@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto.js';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
 import { ChangePhoneRequestDto } from './dto/request/change-phone.request.dto.js';
-import { ApiTags } from '@nestjs/swagger';
+import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import {
   ApiChangePassword,
   ApiChangePhone,
@@ -25,36 +26,48 @@ export class UserController {
     return this.userService.register(dto);
   }
 
-  @Get(':id')
+  @UseGuards(AccessTokenGuard)
+  @Get('me')
   @ApiGetProfile()
-  async getProfile(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.getProfile(id);
+  async getProfile(@Request() req: { user: { userId: number } }) {
+    return this.userService.getProfile(req.user.userId);
   }
 
-  @Patch(':id')
+  // 내 정보 수정
+  @UseGuards(AccessTokenGuard)
+  @Patch('me')
   @ApiUpdateProfile()
-  async updateProfile(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserRequestDto) {
-    return this.userService.updateProfile(id, dto);
+  async updateProfile(
+    @Request() req: { user: { userId: number } },
+    @Body() dto: UpdateUserRequestDto,
+  ) {
+    return this.userService.updateProfile(req.user.userId, dto);
   }
 
-  @Patch(':id/change-password')
+  @UseGuards(AccessTokenGuard)
+  @Patch('me/change-password')
   @ApiChangePassword()
   async changePassword(
-    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { userId: number } },
     @Body() dto: ChangePasswordRequestDto,
   ) {
-    return this.userService.changePassword(id, dto);
+    return this.userService.changePassword(req.user.userId, dto);
   }
 
-  @Patch(':id/change-phone')
+  @UseGuards(AccessTokenGuard)
+  @Patch('me/change-phone')
   @ApiChangePhone()
-  async changePhone(@Param('id', ParseIntPipe) id: number, @Body() dto: ChangePhoneRequestDto) {
-    return this.userService.changePhone(id, dto);
+  async changePhone(
+    @Request() req: { user: { userId: number } },
+    @Body() dto: ChangePhoneRequestDto,
+  ) {
+    return this.userService.changePhone(req.user.userId, dto);
   }
 
-  @Delete(':id')
+  @UseGuards(AccessTokenGuard)
+  @Delete('me')
   @ApiDeleteUser()
-  async deleteUser(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.deleteUser(id);
+  async deleteUser(@Request() req: { user: { userId: number } }) {
+    return this.userService.deleteUser(req.user.userId);
   }
 }

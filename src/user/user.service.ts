@@ -115,7 +115,7 @@ export class UserService {
 
     await this.prisma.users.update({
       where: { id: BigInt(id) },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, refresh_token: null },
     });
 
     return { message: '비밀번호가 변경되었습니다' };

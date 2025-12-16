@@ -1,5 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UserResponseDto } from '../dto/response/user.response.dto.js';
 
 export function ApiRegister() {
@@ -13,47 +13,47 @@ export function ApiRegister() {
 
 export function ApiGetProfile() {
   return applyDecorators(
-    ApiOperation({ summary: '프로필 조회', description: '사용자 정보를 조회합니다.' }),
-    ApiParam({ name: 'id', description: '사용자 ID' }),
+    ApiBearerAuth(),
+    ApiOperation({ summary: '내 정보 조회', description: '로그인한 사용자의 정보를 조회합니다.' }),
     ApiResponse({ status: 200, description: '조회 성공', type: UserResponseDto }),
-    ApiResponse({ status: 404, description: '사용자를 찾을 수 없음' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
   );
 }
 
 export function ApiUpdateProfile() {
   return applyDecorators(
-    ApiOperation({ summary: '프로필 수정', description: '사용자 정보를 수정합니다.' }),
-    ApiParam({ name: 'id', description: '사용자 ID' }),
+    ApiBearerAuth(),
+    ApiOperation({ summary: '내 정보 수정', description: '로그인한 사용자의 정보를 수정합니다.' }),
     ApiResponse({ status: 200, description: '수정 성공', type: UserResponseDto }),
-    ApiResponse({ status: 404, description: '사용자를 찾을 수 없음' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
   );
 }
 
 export function ApiChangePassword() {
   return applyDecorators(
+    ApiBearerAuth(),
     ApiOperation({ summary: '비밀번호 변경', description: '비밀번호를 변경합니다.' }),
-    ApiParam({ name: 'id', description: '사용자 ID' }),
     ApiResponse({ status: 200, description: '변경 성공' }),
     ApiResponse({ status: 400, description: '현재 비밀번호 불일치' }),
-    ApiResponse({ status: 404, description: '사용자를 찾을 수 없음' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
   );
 }
 
 export function ApiChangePhone() {
   return applyDecorators(
+    ApiBearerAuth(),
     ApiOperation({ summary: '전화번호 변경', description: '전화번호를 변경합니다.' }),
-    ApiParam({ name: 'id', description: '사용자 ID' }),
     ApiResponse({ status: 200, description: '변경 성공' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
     ApiResponse({ status: 409, description: '중복된 전화번호' }),
-    ApiResponse({ status: 404, description: '사용자를 찾을 수 없음' }),
   );
 }
 
 export function ApiDeleteUser() {
   return applyDecorators(
-    ApiOperation({ summary: '회원 탈퇴', description: '사용자를 삭제합니다.' }),
-    ApiParam({ name: 'id', description: '사용자 ID' }),
+    ApiBearerAuth(),
+    ApiOperation({ summary: '회원 탈퇴', description: '로그인한 사용자를 삭제합니다.' }),
     ApiResponse({ status: 200, description: '삭제 성공' }),
-    ApiResponse({ status: 404, description: '사용자를 찾을 수 없음' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
   );
 }
