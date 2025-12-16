@@ -1,0 +1,55 @@
+### 회원가입 - 학생
+POST http://localhost:8080/api/users/register
+Content-Type: application/json
+
+{
+  "username": "student1",
+  "phone": "01012345678",
+  "password": "password123",
+  "name": "김학생",
+  "degree": "MASTER"
+}
+
+### 회원가입 - 교수
+POST http://localhost:8080/api/users/register
+Content-Type: application/json
+
+{
+  "username": "prof1",
+  "phone": "01087654321",
+  "password": "password123",
+  "name": "박교수",
+  "degree": "PROFESSOR",
+  "professorEmail": "prof1@univ.ac.kr"
+}
+
+### 프로필 조회
+GET http://localhost:8080/api/users/1
+
+### 프로필 수정
+PATCH http://localhost:8080/api/users/1
+Content-Type: application/json
+
+{
+  "degree": "DOCTOR"
+}
+
+### 비밀번호 변경
+PATCH http://localhost:8080/api/users/1/change-password
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### 전화번호 변경
+PATCH http://localhost:8080/api/users/1/change-phone
+Content-Type: application/json
+
+{
+  "phone": "01099998888"
+}
+
+### 회원 탈퇴
+DELETE http://localhost:8080/api/users/1
