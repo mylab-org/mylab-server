@@ -15,6 +15,7 @@ async function bootstrap() {
     .setTitle('MyLab API')
     .setDescription('MyLab API 문서')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
