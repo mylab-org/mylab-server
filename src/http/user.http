@@ -7,7 +7,7 @@ Content-Type: application/json
   "phone": "01012345678",
   "password": "password123",
   "name": "김학생",
-  "degree": "MASTER"
+  "degree": "BACHELOR"
 }
 
 ### 회원가입 - 교수
