@@ -1,14 +1,15 @@
 -- ---------- common: updated_at trigger ----------
 CREATE
-OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
+    OR REPLACE FUNCTION set_updated_at()
+    RETURNS TRIGGER AS
+$$
 BEGIN
-  NEW.updated_at
-= now();
-RETURN NEW;
+    NEW.updated_at
+        = now();
+    RETURN NEW;
 END;
 $$
-LANGUAGE plpgsql;
+    LANGUAGE plpgsql;
 
 -- =====================================================
 -- USER DOMAIN
@@ -31,16 +32,22 @@ CREATE TABLE users
         (professor_status = 'NONE' AND professor_email IS NULL)
             OR
         (professor_status IN ('PENDING', 'VERIFIED') AND professor_email IS NOT NULL)
+        ),
+    CONSTRAINT chk_degree CHECK (
+        (degree IN ('BACHELOR', 'MASTER', 'DOCTOR', 'PROFESSOR'))
         )
 );
 
 CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE
     ON users
-    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+    FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
-INSERT INTO public.users (id, username, phone, password, name, degree, professor_email, professor_status, created_at, updated_at) VALUES (1, 'test1234', '01012341234', 'test1234', '김교수', 'PROFESSOR', 'prof@univ.ac.kr', 'VERIFIED', default, default);
-
+-- Test User (password: password123)
+INSERT INTO public.users (id, username, phone, password, name, degree, professor_email, professor_status, created_at,
+                          updated_at)
+VALUES (1, 'test1234', '01012341234', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR', 'prof@univ.ac.kr', 'VERIFIED', default, default);
 
 CREATE TABLE labs
 (
@@ -57,38 +64,39 @@ CREATE INDEX idx_labs_school_department ON labs (school_name, department_name);
 
 -- VERIFIED professor only can create labs
 CREATE
-OR REPLACE FUNCTION check_professor_verified()
-RETURNS TRIGGER AS $$
+    OR REPLACE FUNCTION check_professor_verified()
+    RETURNS TRIGGER AS
+$$
 DECLARE
-prof_status TEXT;
+    prof_status TEXT;
 BEGIN
-SELECT professor_status
-INTO prof_status
-FROM users
-WHERE id = NEW.professor_id;
+    SELECT professor_status
+    INTO prof_status
+    FROM users
+    WHERE id = NEW.professor_id;
 
-IF
-prof_status IS NULL THEN
-    RAISE EXCEPTION '교수(professor_id=%)가 존재하지 않습니다', NEW.professor_id;
-END IF;
+    IF
+        prof_status IS NULL THEN
+        RAISE EXCEPTION '교수(professor_id=%)가 존재하지 않습니다', NEW.professor_id;
+    END IF;
 
-  IF
-prof_status != 'VERIFIED' THEN
-    RAISE EXCEPTION
-      '인증된 교수만 연구실을 생성할 수 있습니다 (현재 상태: %)',
-      prof_status;
-END IF;
+    IF
+        prof_status != 'VERIFIED' THEN
+        RAISE EXCEPTION
+            '인증된 교수만 연구실을 생성할 수 있습니다 (현재 상태: %)',
+            prof_status;
+    END IF;
 
-RETURN NEW;
+    RETURN NEW;
 END;
 $$
-LANGUAGE plpgsql;
+    LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_check_professor_verified
     BEFORE INSERT
     ON labs
     FOR EACH ROW
-    EXECUTE FUNCTION check_professor_verified();
+EXECUTE FUNCTION check_professor_verified();
 
 
 CREATE TABLE lab_members
@@ -119,41 +127,45 @@ CREATE INDEX idx_lab_members_lab_id_left_at ON lab_members (lab_id, left_at);
 
 -- 랩장 최대 2명 제한
 CREATE
-OR REPLACE FUNCTION check_lab_leader_limit()
-RETURNS TRIGGER AS $$
+    OR REPLACE FUNCTION check_lab_leader_limit()
+    RETURNS TRIGGER AS
+$$
 DECLARE
-leader_count INTEGER;
+    leader_count INTEGER;
 BEGIN
-IF
-NEW.role = 'LAB_LEADER' AND NEW.left_at IS NULL
-    AND (
-       TG_OP = 'INSERT'
-       OR (TG_OP = 'UPDATE' AND (OLD.role IS DISTINCT FROM NEW.role OR OLD.left_at IS DISTINCT FROM NEW.left_at))
-     )
-  THEN
-SELECT COUNT(*)
-INTO leader_count
-FROM lab_members
-WHERE lab_id = NEW.lab_id
-  AND role = 'LAB_LEADER'
-  AND left_at IS NULL
-  AND id <> COALESCE(NEW.id, 0);
+    IF
+        NEW.role = 'LAB_LEADER' AND NEW.left_at IS NULL
+            AND (
+            TG_OP = 'INSERT'
+                OR
+            (TG_OP = 'UPDATE' AND (OLD.role IS DISTINCT FROM NEW.role OR OLD.left_at IS DISTINCT FROM NEW.left_at))
+            )
+    THEN
+        SELECT COUNT(*)
+        INTO leader_count
+        FROM lab_members
+        WHERE lab_id = NEW.lab_id
+          AND role = 'LAB_LEADER'
+          AND left_at IS NULL
+          AND id <> COALESCE(NEW.id, 0);
 
-IF
-leader_count >= 2 THEN
-    RAISE EXCEPTION '연구실당 최대 2명의 랩장만 지정할 수 있습니다 (현재: %명)', leader_count;
-END IF;
-END IF;
+        IF
+            leader_count >= 2 THEN
+            RAISE EXCEPTION '연구실당 최대 2명의 랩장만 지정할 수 있습니다 (현재: %명)', leader_count;
+        END IF;
+    END IF;
 
-RETURN NEW;
+    RETURN NEW;
 END;
 $$
-LANGUAGE plpgsql;
+    LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_lab_leader_limit
     BEFORE INSERT OR
-UPDATE ON lab_members
-    FOR EACH ROW EXECUTE FUNCTION check_lab_leader_limit();
+        UPDATE
+    ON lab_members
+    FOR EACH ROW
+EXECUTE FUNCTION check_lab_leader_limit();
 
 
 CREATE TABLE invite_codes
@@ -239,7 +251,8 @@ CREATE INDEX idx_schedules_lab_id_created_at ON schedules (lab_id, created_at);
 CREATE TRIGGER trg_schedules_updated_at
     BEFORE UPDATE
     ON schedules
-    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+    FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 
 -- Cross-lab participant insertion blocked:
@@ -294,35 +307,38 @@ CREATE INDEX idx_papers_schedule_id ON papers (schedule_id);
 
 -- 논문은 CONFERENCE 일정에만 추가 가능
 CREATE
-OR REPLACE FUNCTION check_paper_schedule_type()
-RETURNS TRIGGER AS $$
+    OR REPLACE FUNCTION check_paper_schedule_type()
+    RETURNS TRIGGER AS
+$$
 DECLARE
-schedule_type TEXT;
+    schedule_type TEXT;
 BEGIN
-SELECT type
-INTO schedule_type
-FROM schedules
-WHERE id = NEW.schedule_id;
+    SELECT type
+    INTO schedule_type
+    FROM schedules
+    WHERE id = NEW.schedule_id;
 
-IF
-schedule_type IS NULL THEN
-    RAISE EXCEPTION 'schedule_id % not found', NEW.schedule_id;
-END IF;
+    IF
+        schedule_type IS NULL THEN
+        RAISE EXCEPTION 'schedule_id % not found', NEW.schedule_id;
+    END IF;
 
-IF
-schedule_type != 'CONFERENCE' THEN
-    RAISE EXCEPTION '논문은 학회(CONFERENCE) 타입 일정에만 추가할 수 있습니다 (현재: %)', schedule_type;
-END IF;
+    IF
+        schedule_type != 'CONFERENCE' THEN
+        RAISE EXCEPTION '논문은 학회(CONFERENCE) 타입 일정에만 추가할 수 있습니다 (현재: %)', schedule_type;
+    END IF;
 
-RETURN NEW;
+    RETURN NEW;
 END;
 $$
-LANGUAGE plpgsql;
+    LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_paper_schedule_type
     BEFORE INSERT OR
-UPDATE ON papers
-    FOR EACH ROW EXECUTE FUNCTION check_paper_schedule_type();
+        UPDATE
+    ON papers
+    FOR EACH ROW
+EXECUTE FUNCTION check_paper_schedule_type();
 
 
 CREATE TABLE paper_members
@@ -397,7 +413,8 @@ CREATE TABLE device_tokens
 CREATE TRIGGER trg_device_tokens_updated_at
     BEFORE UPDATE
     ON device_tokens
-    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+    FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 
 CREATE TABLE notifications
