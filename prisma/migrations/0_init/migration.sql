@@ -110,7 +110,7 @@ CREATE TABLE lab_members
     joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     left_at   TIMESTAMPTZ,
 
-    CONSTRAINT chk_lab_member_role CHECK (role IN ('LAB_LEADER', 'MEMBER')),
+    CONSTRAINT chk_lab_member_role CHECK (role IN ('PROFESSOR', 'LAB_LEADER', 'MEMBER')),
 
     -- 같은 연구실 중복 "활성" 가입 방지
     CONSTRAINT uq_lab_members_active_user_lab UNIQUE (user_id, lab_id) DEFERRABLE INITIALLY IMMEDIATE
