@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, ValidateIf } from 'class-validator';
-import { AUTH_ERROR } from '../../constants/auth.error.js';
 
 export class LoginRequestDto {
   @ApiProperty({ example: 'newuser1', description: '아이디', required: false })
@@ -17,6 +16,6 @@ export class LoginRequestDto {
 
   @ApiProperty({ example: 'password123', description: '비밀번호' })
   @IsString()
-  @IsNotEmpty({ message: AUTH_ERROR.PASSWORD_REQUIRED.message })
+  @IsNotEmpty({ message: '비밀번호를 입력하세요' })
   password: string;
 }
