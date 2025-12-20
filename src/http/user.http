@@ -1,8 +1,4 @@
-### ============================================
-### 회원가입 (토큰 불필요)
-### ============================================
-
-### 회원가입 - 학생
+### 회원가입 - 학생 (토큰 x)
 POST http://localhost:8080/api/users/register
 Content-Type: application/json
 
@@ -14,7 +10,7 @@ Content-Type: application/json
   "degree": "BACHELOR"
 }
 
-### 회원가입 - 교수
+### 회원가입 - 교수 (토큰 x)
 POST http://localhost:8080/api/users/register
 Content-Type: application/json
 
@@ -27,11 +23,7 @@ Content-Type: application/json
   "professorEmail": "prof1@univ.ac.kr"
 }
 
-### ============================================
-### 로그인 먼저 (토큰 저장)
-### ============================================
-
-### 로그인 후 토큰 저장
+### 로그인 (토큰 저장)
 POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
@@ -45,15 +37,11 @@ Content-Type: application/json
   client.global.set("refreshToken", response.body.refreshToken);
 %}
 
-### ============================================
-### 인증 필요한 API (토큰 필요)
-### ============================================
-
-### 내 정보 조회
+### 내 정보 조회 (토큰 o)
 GET http://localhost:8080/api/users/me
 Authorization: Bearer {{accessToken}}
 
-### 내 정보 수정
+### 내 정보 수정 (토큰 o)
 PATCH http://localhost:8080/api/users/me
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -62,7 +50,7 @@ Content-Type: application/json
   "degree": "DOCTOR"
 }
 
-### 비밀번호 변경
+### 비밀번호 변경  (토큰 o)
 PATCH http://localhost:8080/api/users/me/change-password
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -72,7 +60,7 @@ Content-Type: application/json
   "newPassword": "newpassword123"
 }
 
-### 전화번호 변경
+### 전화번호 변경 (토큰 o)
 PATCH http://localhost:8080/api/users/me/change-phone
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -81,26 +69,18 @@ Content-Type: application/json
   "phone": "01099998888"
 }
 
-### 회원 탈퇴
+### 회원 탈퇴 (토큰 o)
 DELETE http://localhost:8080/api/users/me
 Authorization: Bearer {{accessToken}}
 
-### ============================================
-### 에러 케이스
-### ============================================
-
-### 토큰 없이 조회 시도 - 401 에러
+### [에러] 토큰 없이 조회 시도 - 401
 GET http://localhost:8080/api/users/me
 
-### 만료된 토큰으로 조회 - 401 에러
+### [에러] 만료된 토큰으로 조회 - 401
 GET http://localhost:8080/api/users/me
 Authorization: Bearer invalid.token.here
-```
 
----
-
-## 테스트 순서
-```
-1. 회원가입 실행
-2. 로그인 실행 (토큰 자동 저장됨)
-3. 내 정보 조회 등 실행 ({{accessToken}} 자동으로 들어감)
+# 테스트 순서
+#1. 회원가입 실행
+#2. 로그인 실행 (토큰 자동 저장됨)
+#3. 내 정보 조회 등 실행 ({{accessToken}} 자동으로 들어감)
