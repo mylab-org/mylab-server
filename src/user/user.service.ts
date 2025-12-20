@@ -1,7 +1,5 @@
-import 'dotenv/config';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateUserRequestDto } from './dto/request/create-user.request.dto.js';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto.js';
 import { CommonException } from '../common/exceptions/common.exception.js';
 import * as bcrypt from 'bcrypt';
@@ -24,47 +22,6 @@ export class UserService {
     created_at: true,
     updated_at: true,
   };
-
-  async register(dto: CreateUserRequestDto) {
-    const existing = await this.prisma.users.findFirst({
-      where: {
-        OR: [
-          { username: dto.username },
-          { phone: dto.phone },
-          ...(dto.professorEmail ? [{ professor_email: dto.professorEmail }] : []),
-        ],
-      },
-    });
-
-    if (existing) {
-      if (existing.username === dto.username) {
-        throw new CommonException(USER_ERROR.DUPLICATE_USERNAME);
-      }
-      if (existing.phone === dto.phone) {
-        throw new CommonException(USER_ERROR.DUPLICATE_PHONE);
-      }
-      if (existing.professor_email === dto.professorEmail) {
-        throw new CommonException(USER_ERROR.DUPLICATE_EMAIL);
-      }
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    const isProfessor = dto.degree === 'PROFESSOR';
-
-    return this.prisma.users.create({
-      data: {
-        username: dto.username,
-        phone: dto.phone,
-        password: hashedPassword,
-        name: dto.name,
-        degree: dto.degree,
-        professor_email: isProfessor ? dto.professorEmail : null,
-        professor_status: isProfessor ? 'PENDING' : 'NONE',
-      },
-      select: this.userSelect,
-    });
-  }
 
   async getProfile(id: number) {
     const user = await this.prisma.users.findUnique({
@@ -96,6 +53,21 @@ export class UserService {
     });
   }
 
+  async deleteUser(id: number) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: BigInt(id) },
+      select: this.userSelect,
+    });
+
+    if (!user) {
+      throw new CommonException(USER_ERROR.NOT_FOUND);
+    }
+
+    return this.prisma.users.delete({
+      where: { id: BigInt(id) },
+    });
+  }
+
   async changePassword(id: number, dto: ChangePasswordRequestDto) {
     const user = await this.prisma.users.findUnique({
       where: { id: BigInt(id) },
@@ -108,7 +80,7 @@ export class UserService {
 
     const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
     if (!isMatch) {
-      throw new CommonException(USER_ERROR.IS_NOT_MATCHED_PASSWORD);
+      throw new CommonException(USER_ERROR.PASSWORD_NOT_MATCHED);
     }
 
     const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
@@ -145,20 +117,5 @@ export class UserService {
     });
 
     return { message: '전화번호가 변경되었습니다' };
-  }
-
-  async deleteUser(id: number) {
-    const user = await this.prisma.users.findUnique({
-      where: { id: BigInt(id) },
-      select: this.userSelect,
-    });
-
-    if (!user) {
-      throw new CommonException(USER_ERROR.NOT_FOUND);
-    }
-
-    return this.prisma.users.delete({
-      where: { id: BigInt(id) },
-    });
   }
 }
