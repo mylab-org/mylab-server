@@ -7,12 +7,14 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { EXPIRES_IN, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from './constants/jwt.config.js';
 import { RegisterRequestDto } from './dto/request/register.request.dto.js';
+import { VerificationService } from '../verification/verification.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private verificationService: VerificationService,
   ) {}
 
   private readonly userSelect = {
@@ -75,7 +77,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const isProfessor = dto.degree === 'PROFESSOR';
 
-    return this.prisma.users.create({
+    const user = await this.prisma.users.create({
       data: {
         username: dto.username,
         phone: dto.phone,
@@ -87,6 +89,12 @@ export class AuthService {
       },
       select: this.userSelect,
     });
+
+    if (dto.degree === 'PROFESSOR' && dto.professorEmail) {
+      await this.verificationService.sendEmailVerification(Number(user.id));
+    }
+
+    return user;
   }
 
   async login(dto: LoginRequestDto) {

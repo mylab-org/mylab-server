@@ -49,7 +49,7 @@ EXECUTE FUNCTION set_updated_at();
 INSERT INTO public.users (username, phone, password, name, degree, professor_email, professor_status, created_at,
                           updated_at)
 VALUES ('test1234', '01012341234', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR',
-        'prof@univ.ac.kr', 'VERIFIED', default, default);
+        'noreply.myla3@gmail.com', 'PENDING', default, default);
 
 CREATE TABLE labs
 (
@@ -149,7 +149,7 @@ BEGIN
         WHERE lab_id = NEW.lab_id
           AND role = 'LAB_LEADER'
           AND left_at IS NULL
-          AND id <> COALESCE(NEW.id, 0);
+          AND id <> NEW.id;
 
         IF
             leader_count >= 2 THEN
@@ -440,3 +440,17 @@ CREATE TABLE notifications
 
 CREATE INDEX idx_notifications_user_created_at ON notifications (user_id, created_at);
 CREATE INDEX idx_notifications_user_is_read ON notifications (user_id, is_read);
+
+
+CREATE TABLE verification_tokens
+(
+    id         BIGSERIAL PRIMARY KEY,
+    user_id    BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    type       TEXT        NOT NULL,
+    token      TEXT UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_verification_tokens_user_id ON verification_tokens (user_id);
+CREATE INDEX idx_verification_tokens_token ON verification_tokens (token);
