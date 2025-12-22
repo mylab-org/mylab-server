@@ -8,7 +8,7 @@ Content-Type: application/json
 }
 
 > {%
-  client.global.set("accessToken", response.body.accessToken);
+  client.global.set("accessToken", response.body.data.accessToken);
 %}
 
 ### 인증 메일 발송
@@ -16,7 +16,7 @@ POST http://localhost:8080/api/verify/email
 Authorization: Bearer {{accessToken}}
 
 ### 이메일 인증 처리 (메일에서 토큰 복사)
-GET http://localhost:8080/api/verify/email?token=eb3d5e625abacd496178885ad6c671227746b53793a7630dee281047ff30426d
+GET http://localhost:8080/api/verify/email?token=토큰입력
 
 ### 에러 - 잘못된 토큰
 GET http://localhost:8080/api/verify/email?token=invalidtoken123

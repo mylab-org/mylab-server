@@ -19,8 +19,8 @@ Content-Type: application/json
 }
 
 > {%
-  client.global.set("accessToken", response.body.accessToken);
-  client.global.set("refreshToken", response.body.refreshToken);
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("refreshToken", response.body.data.refreshToken);
 %}
 
 ### 로그인 (phone)
@@ -33,22 +33,22 @@ Content-Type: application/json
 }
 
 > {%
-  client.global.set("accessToken", response.body.accessToken);
-  client.global.set("refreshToken", response.body.refreshToken);
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("refreshToken", response.body.data.refreshToken);
 %}
-
-### 로그아웃
-POST http://localhost:8080/api/auth/logout
-Authorization: Bearer {{accessToken}}
 
 ### 토큰 재발급
 POST http://localhost:8080/api/auth/refresh
 Authorization: Bearer {{refreshToken}}
 
 > {%
-  client.global.set("accessToken", response.body.accessToken);
-  client.global.set("refreshToken", response.body.refreshToken);
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("refreshToken", response.body.data.refreshToken);
 %}
+
+### 로그아웃
+POST http://localhost:8080/api/auth/logout
+Authorization: Bearer {{accessToken}}
 
 ### 에러 - 로그인 비밀번호 틀림
 POST http://localhost:8080/api/auth/login

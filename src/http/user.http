@@ -8,8 +8,8 @@ Content-Type: application/json
 }
 
 > {%
-  client.global.set("accessToken", response.body.accessToken);
-  client.global.set("refreshToken", response.body.refreshToken);
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("refreshToken", response.body.data.refreshToken);
 %}
 
 ### 내 정보 조회
