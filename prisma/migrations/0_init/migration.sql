@@ -17,25 +17,20 @@ $$
 
 CREATE TABLE users
 (
-    id               BIGSERIAL PRIMARY KEY,
-    username         TEXT UNIQUE NOT NULL,
-    phone            TEXT UNIQUE NOT NULL,
-    password         TEXT        NOT NULL,
-    name             TEXT        NOT NULL,
-    degree           TEXT                 DEFAULT 'BACHELOR',
-    professor_email  TEXT UNIQUE,
-    professor_status TEXT        NOT NULL DEFAULT 'NONE',
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    refresh_token    TEXT,
+    id                    BIGSERIAL PRIMARY KEY,
+    username              TEXT UNIQUE NOT NULL,
+    phone                 TEXT UNIQUE NOT NULL,
+    password              TEXT        NOT NULL,
+    name                  TEXT        NOT NULL,
+    degree                TEXT                 DEFAULT 'NONE',
+    professor_email       TEXT UNIQUE,
+    is_professor_verified BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    refresh_token         TEXT,
 
-    CONSTRAINT chk_professor_email_status CHECK (
-        (professor_status = 'NONE' AND professor_email IS NULL)
-            OR
-        (professor_status IN ('PENDING', 'VERIFIED') AND professor_email IS NOT NULL)
-        ),
     CONSTRAINT chk_degree CHECK (
-        (degree IN ('BACHELOR', 'MASTER', 'DOCTOR', 'PROFESSOR'))
+        (degree IN ('NONE', 'BACHELOR', 'MASTER', 'DOCTOR', 'PROFESSOR'))
         )
 );
 
@@ -46,60 +41,36 @@ CREATE TRIGGER trg_users_updated_at
 EXECUTE FUNCTION set_updated_at();
 
 -- Test User (password: password123)
-INSERT INTO public.users (username, phone, password, name, degree, professor_email, professor_status, created_at,
+INSERT INTO public.users (username, phone, password, name, degree, professor_email, is_professor_verified, created_at,
                           updated_at)
 VALUES ('test1234', '01012341234', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR',
-        'noreply.myla3@gmail.com', 'PENDING', default, default);
+        'noreply.myla3@gmail.com', default, default, default);
 
 CREATE TABLE labs
 (
     id              BIGSERIAL PRIMARY KEY,
     name            TEXT        NOT NULL,
-    school_name     TEXT        NOT NULL,
+    university_name TEXT        NOT NULL,
     department_name TEXT        NOT NULL,
     professor_id    BIGINT      NOT NULL REFERENCES users (id),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    status          TEXT        NOT NULL DEFAULT 'PENDING',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT chk_status CHECK (
+        status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'DELETED')
+        )
 );
 
 CREATE INDEX idx_labs_professor_id ON labs (professor_id);
-CREATE INDEX idx_labs_school_department ON labs (school_name, department_name);
+CREATE INDEX idx_labs_university_department ON labs (university_name, department_name);
+CREATE INDEX idx_labs_status ON labs (status);
 
--- VERIFIED professor only can create labs
-CREATE
-    OR REPLACE FUNCTION check_professor_verified()
-    RETURNS TRIGGER AS
-$$
-DECLARE
-    prof_status TEXT;
-BEGIN
-    SELECT professor_status
-    INTO prof_status
-    FROM users
-    WHERE id = NEW.professor_id;
-
-    IF
-        prof_status IS NULL THEN
-        RAISE EXCEPTION '교수(professor_id=%)가 존재하지 않습니다', NEW.professor_id;
-    END IF;
-
-    IF
-        prof_status != 'VERIFIED' THEN
-        RAISE EXCEPTION
-            '인증된 교수만 연구실을 생성할 수 있습니다 (현재 상태: %)',
-            prof_status;
-    END IF;
-
-    RETURN NEW;
-END;
-$$
-    LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_professor_verified
-    BEFORE INSERT
+CREATE TRIGGER trg_labs_updated_at
+    BEFORE UPDATE
     ON labs
     FOR EACH ROW
-EXECUTE FUNCTION check_professor_verified();
-
+EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE lab_members
 (
