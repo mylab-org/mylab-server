@@ -18,15 +18,15 @@ import {
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(AccessTokenGuard)
   @Get('me')
+  @UseGuards(AccessTokenGuard)
   @ApiGetProfile()
   async getProfile(@Request() req: { user: { userId: number } }) {
     return this.userService.getProfile(req.user.userId);
   }
 
-  @UseGuards(AccessTokenGuard)
   @Patch('me')
+  @UseGuards(AccessTokenGuard)
   @ApiUpdateProfile()
   async updateProfile(
     @Request() req: { user: { userId: number } },
@@ -35,15 +35,15 @@ export class UserController {
     return this.userService.updateProfile(req.user.userId, dto);
   }
 
-  @UseGuards(AccessTokenGuard)
   @Delete('me')
+  @UseGuards(AccessTokenGuard)
   @ApiDeleteUser()
   async deleteUser(@Request() req: { user: { userId: number } }) {
     return this.userService.deleteUser(req.user.userId);
   }
 
-  @UseGuards(AccessTokenGuard)
   @Patch('me/password')
+  @UseGuards(AccessTokenGuard)
   @ApiChangePassword()
   async changePassword(
     @Request() req: { user: { userId: number } },
@@ -52,8 +52,8 @@ export class UserController {
     return this.userService.changePassword(req.user.userId, dto);
   }
 
-  @UseGuards(AccessTokenGuard)
   @Patch('me/phone')
+  @UseGuards(AccessTokenGuard)
   @ApiChangePhone()
   async changePhone(
     @Request() req: { user: { userId: number } },

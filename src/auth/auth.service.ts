@@ -7,58 +7,19 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { EXPIRES_IN, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from './constants/jwt.config.js';
 import { RegisterRequestDto } from './dto/request/register.request.dto.js';
-import { VerificationService } from '../verification/verification.service.js';
+import { userSelect } from '../user/constants/user.select.js';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private verificationService: VerificationService,
   ) {}
-
-  private readonly userSelect = {
-    id: true,
-    username: true,
-    phone: true,
-    name: true,
-    degree: true,
-    professor_email: true,
-    professor_status: true,
-    created_at: true,
-    updated_at: true,
-  };
-
-  private async generateToken(payload: { sub: number; username: string; phone: string }) {
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: JWT_ACCESS_SECRET,
-      expiresIn: EXPIRES_IN.JWT_ACCESS_TOKEN,
-    });
-
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: JWT_REFRESH_SECRET,
-      expiresIn: EXPIRES_IN.JWT_REFRESH_TOKEN,
-    });
-
-    return { accessToken, refreshToken };
-  }
-
-  private async saveRefreshToken(userId: bigint, refreshToken: string) {
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.prisma.users.update({
-      where: { id: userId },
-      data: { refresh_token: hashedRefreshToken },
-    });
-  }
 
   async register(dto: RegisterRequestDto) {
     const existing = await this.prisma.users.findFirst({
       where: {
-        OR: [
-          { username: dto.username },
-          { phone: dto.phone },
-          ...(dto.professorEmail ? [{ professor_email: dto.professorEmail }] : []),
-        ],
+        OR: [{ username: dto.username }, { phone: dto.phone }],
       },
     });
 
@@ -69,13 +30,9 @@ export class AuthService {
       if (existing.phone === dto.phone) {
         throw new CommonException(AUTH_ERROR.DUPLICATE_PHONE);
       }
-      if (existing.professor_email === dto.professorEmail) {
-        throw new CommonException(AUTH_ERROR.DUPLICATE_EMAIL);
-      }
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-    const isProfessor = dto.degree === 'PROFESSOR';
 
     const user = await this.prisma.users.create({
       data: {
@@ -83,18 +40,18 @@ export class AuthService {
         phone: dto.phone,
         password: hashedPassword,
         name: dto.name,
-        degree: dto.degree,
-        professor_email: isProfessor ? dto.professorEmail : null,
-        professor_status: isProfessor ? 'PENDING' : 'NONE',
       },
-      select: this.userSelect,
+      select: userSelect,
     });
 
-    if (dto.degree === 'PROFESSOR' && dto.professorEmail) {
-      await this.verificationService.sendEmailVerification(Number(user.id));
-    }
+    const tokens = await this.generateTokens(Number(user.id));
 
-    return user;
+    await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+    return {
+      user,
+      ...tokens,
+    };
   }
 
   async login(dto: LoginRequestDto) {
@@ -117,11 +74,18 @@ export class AuthService {
       throw new CommonException(AUTH_ERROR.INVALID_CREDENTIALS);
     }
 
-    const payload = { sub: Number(user.id), username: user.username, phone: user.phone };
-    const tokens = await this.generateToken(payload);
+    const tokens = await this.generateTokens(Number(user.id));
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    return tokens;
+    const userResponse = await this.prisma.users.findUnique({
+      where: { id: user.id },
+      select: userSelect,
+    });
+
+    return {
+      user: userResponse,
+      ...tokens,
+    };
   }
 
   async logout(userId: number) {
@@ -131,6 +95,22 @@ export class AuthService {
     });
 
     return { message: '로그아웃 되었습니다' };
+  }
+
+  async refreshToken(userId: number) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: BigInt(userId) },
+      select: { id: true, username: true, phone: true },
+    });
+
+    if (!user) {
+      throw new CommonException(AUTH_ERROR.USER_NOT_FOUND);
+    }
+
+    const tokens = await this.generateTokens(Number(user.id));
+    await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+    return { ...tokens };
   }
 
   async validateRefreshToken(userId: number, refreshToken: string | undefined): Promise<boolean> {
@@ -148,20 +128,27 @@ export class AuthService {
     return bcrypt.compare(refreshToken, user.refresh_token);
   }
 
-  async refreshToken(userId: number) {
-    const user = await this.prisma.users.findUnique({
-      where: { id: BigInt(userId) },
-      select: { id: true, username: true, phone: true },
+  private async generateTokens(userId: number) {
+    const payload = { sub: userId };
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: JWT_ACCESS_SECRET,
+      expiresIn: EXPIRES_IN.JWT_ACCESS_TOKEN,
     });
 
-    if (!user) {
-      throw new CommonException(AUTH_ERROR.USER_NOT_FOUND);
-    }
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: JWT_REFRESH_SECRET,
+      expiresIn: EXPIRES_IN.JWT_REFRESH_TOKEN,
+    });
 
-    const payload = { sub: Number(user.id), username: user.username, phone: user.phone };
-    const tokens = await this.generateToken(payload);
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    return { accessToken, refreshToken };
+  }
 
-    return tokens;
+  private async saveRefreshToken(userId: bigint, refreshToken: string) {
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    await this.prisma.users.update({
+      where: { id: userId },
+      data: { refresh_token: hashedRefreshToken },
+    });
   }
 }

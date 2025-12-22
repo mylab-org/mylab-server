@@ -1,4 +1,4 @@
-### 회원가입 - 학생
+### 회원가입 (기본)
 POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
@@ -6,21 +6,7 @@ Content-Type: application/json
   "username": "student1",
   "phone": "01012345678",
   "password": "password123",
-  "name": "김학생",
-  "degree": "BACHELOR"
-}
-
-### 회원가입 - 교수
-POST http://localhost:8080/api/auth/register
-Content-Type: application/json
-
-{
-  "username": "prof1",
-  "phone": "01087654321",
-  "password": "password123",
-  "name": "박교수",
-  "degree": "PROFESSOR",
-  "professorEmail": "prof1@korea.ac.kr"
+  "name": "김학생"
 }
 
 ### 로그인 (username)
@@ -28,7 +14,7 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "test1234",
+  "username": "student1",
   "password": "password123"
 }
 
@@ -42,7 +28,7 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "phone": "01012341234",
+  "phone": "01012345678",
   "password": "password123"
 }
 
@@ -56,7 +42,7 @@ POST http://localhost:8080/api/auth/logout
 Authorization: Bearer {{accessToken}}
 
 ### 토큰 재발급
-POST http://localhost:8080/api/auth/refresh-token
+POST http://localhost:8080/api/auth/refresh
 Authorization: Bearer {{refreshToken}}
 
 > {%
@@ -69,7 +55,7 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "test1234",
+  "username": "student1",
   "password": "wrongpassword"
 }
 
@@ -82,4 +68,4 @@ Content-Type: application/json
 }
 
 ### 에러 - 토큰 재발급 토큰 없음
-POST http://localhost:8080/api/auth/refresh-token
+POST http://localhost:8080/api/auth/refresh
