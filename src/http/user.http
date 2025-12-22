@@ -41,7 +41,7 @@ Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "phone": "01099998888"
+  "newPhone": "01099998888"
 }
 
 ### 회원 탈퇴

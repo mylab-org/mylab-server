@@ -6,5 +6,5 @@ export class ChangePhoneRequestDto {
   @IsString()
   @IsNotEmpty({ message: '새 전화번호를 입력하세요' })
   @Matches(/^010[0-9]{8}$/, { message: '올바른 전화번호 형식이 아닙니다' })
-  phone: string;
+  newPhone: string;
 }
