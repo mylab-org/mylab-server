@@ -6,27 +6,16 @@ import * as bcrypt from 'bcrypt';
 import { USER_ERROR } from './constants/user.error.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
 import { ChangePhoneRequestDto } from './dto/request/change-phone.request.dto.js';
+import { userSelect } from './constants/user.select.js';
 
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  private readonly userSelect = {
-    id: true,
-    username: true,
-    phone: true,
-    name: true,
-    degree: true,
-    professor_email: true,
-    professor_status: true,
-    created_at: true,
-    updated_at: true,
-  };
-
   async getProfile(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id: BigInt(id) },
-      select: this.userSelect,
+      select: userSelect,
     });
 
     if (!user) {
@@ -49,23 +38,21 @@ export class UserService {
     return this.prisma.users.update({
       where: { id: BigInt(id) },
       data: dto,
-      select: this.userSelect,
+      select: userSelect,
     });
   }
 
   async deleteUser(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id: BigInt(id) },
-      select: this.userSelect,
+      select: userSelect,
     });
 
     if (!user) {
       throw new CommonException(USER_ERROR.NOT_FOUND);
     }
 
-    return this.prisma.users.delete({
-      where: { id: BigInt(id) },
-    });
+    return { message: '회원 탈퇴가 완료되었습니다' };
   }
 
   async changePassword(id: number, dto: ChangePasswordRequestDto) {
