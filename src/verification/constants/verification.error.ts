@@ -10,7 +10,7 @@ export const VERIFY_ERROR: Record<string, ErrorInfo> = {
 
   NOT_PROFESSOR: {
     code: 'NOT_PROFESSOR',
-    message: '교수 이메일이 등록되지 않았습니다',
+    message: '교수만 이메일 인증이 가능합니다',
     status: HttpStatus.BAD_REQUEST,
   },
   ALREADY_VERIFIED: {
@@ -32,7 +32,7 @@ export const VERIFY_ERROR: Record<string, ErrorInfo> = {
 
   TOO_MANY_REQUESTS: {
     code: 'TOO_MANY_REQUESTS',
-    message: '잠시 후 다시 시도해주세요',
+    message: '재발송은 60초 후에 가능합니다',
     status: HttpStatus.TOO_MANY_REQUESTS,
   },
 } as const;

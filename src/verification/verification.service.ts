@@ -27,8 +27,9 @@ export class VerificationService {
       select: {
         id: true,
         name: true,
+        degree: true,
         professor_email: true,
-        professor_status: true,
+        is_professor_verified: true,
       },
     });
 
@@ -36,11 +37,11 @@ export class VerificationService {
       throw new CommonException(VERIFY_ERROR.USER_NOT_FOUND);
     }
 
-    if (!user.professor_email || user.professor_status === 'NONE') {
+    if (!user.professor_email || user.degree !== 'PROFESSOR') {
       throw new CommonException(VERIFY_ERROR.NOT_PROFESSOR);
     }
 
-    if (user.professor_status === 'VERIFIED') {
+    if (user.is_professor_verified) {
       throw new CommonException(VERIFY_ERROR.ALREADY_VERIFIED);
     }
 
@@ -78,7 +79,7 @@ export class VerificationService {
       },
     });
 
-    const verifyUrl = `${process.env.CLIENT_URL}/api/verify/email?token=${token}`;
+    const verifyUrl = `${process.env.CLIENT_URL}/verify/email?token=${token}`;
 
     await this.transporter.sendMail({
       from: `"MyLab" <${process.env.SMTP_USER}>`,
@@ -98,6 +99,7 @@ export class VerificationService {
     if (!verification) {
       throw new CommonException(VERIFY_ERROR.INVALID_TOKEN);
     }
+
     if (verification.expires_at < new Date()) {
       await this.prisma.verification_tokens.delete({
         where: { id: verification.id },
@@ -107,7 +109,7 @@ export class VerificationService {
 
     await this.prisma.users.update({
       where: { id: verification.user_id },
-      data: { professor_status: 'VERIFIED' },
+      data: { is_professor_verified: true },
     });
 
     await this.prisma.verification_tokens.delete({
