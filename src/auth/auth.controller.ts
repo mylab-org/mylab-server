@@ -3,9 +3,8 @@ import { AuthService } from './auth.service.js';
 import { LoginRequestDto } from './dto/request/login.request.dto.js';
 import { AccessTokenGuard } from './guards/access-token.guard.js';
 import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
-import { ApiLogin, ApiLogout, ApiRefresh } from './docs/auth.swagger.js';
+import { ApiLogin, ApiLogout, ApiRefresh, ApiRegister } from './docs/auth.swagger.js';
 import { ApiTags } from '@nestjs/swagger';
-import { ApiRegister } from '../user/docs/user.swagger.js';
 import { RegisterRequestDto } from './dto/request/register.request.dto.js';
 
 @ApiTags('Auth')
@@ -19,23 +18,23 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  @ApiLogin()
-  @HttpCode(HttpStatus.OK)
   @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiLogin()
   async login(@Body() dto: LoginRequestDto) {
     return this.authService.login(dto);
   }
 
-  @ApiLogout()
-  @UseGuards(AccessTokenGuard)
   @Post('logout')
+  @UseGuards(AccessTokenGuard)
+  @ApiLogout()
   async logout(@Request() req: { user: { userId: number } }) {
     return this.authService.logout(req.user.userId);
   }
 
-  @ApiRefresh()
-  @UseGuards(RefreshTokenGuard)
   @Post('refresh')
+  @UseGuards(RefreshTokenGuard)
+  @ApiRefresh()
   async refreshToken(@Request() req: { user: { userId: number } }) {
     return this.authService.refreshToken(req.user.userId);
   }
