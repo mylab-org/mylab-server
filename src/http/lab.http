@@ -1,9 +1,145 @@
-### 연구실 생성 - 성공
-POST http://localhost:8080/api/lab
+### 토큰 저장용 교수 로그인 (인증 완료)
+### 로그인 (교수 계정)
+POST http://localhost:8080/api/auth/login
 Content-Type: application/json
+
+{
+  "username": "test1234",
+  "password": "password123"
+}
+
+> {%
+  client.global.set("profToken", response.body.data.accessToken);
+%}
+
+### 연구실 생성 - 성공
+POST http://localhost:8080/api/labs
+Content-Type: application/json
+Authorization: Bearer {{profToken}}
 
 {
   "schoolName": "Test School",
   "departmentName": "Test department",
   "labName": "Test Lab"
 }
+
+> {%
+  client.global.set("labId", response.body.data.labId);
+%}
+
+### 초대 코드 생성 - 만료일 지정 X (24시간 만료)
+POST http://localhost:8080/api/labs/{{labId}}/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{profToken}}
+
+{}
+
+> {%
+  client.global.set("inviteCode", response.body.data.code);
+%}
+
+### 초대 코드 생성 - 만료일 지정 (날짜 확인!!!!)
+POST http://localhost:8080/api/labs/{{labId}}/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{profToken}}
+
+{
+  "expiresAt": "2024-12-25T00:00:00Z"
+}
+
+> {%
+  client.global.set("inviteCode", response.body.data.code);
+%}
+
+### 초대 코드 생성 - 7일 후 만료 (날짜 확인!!!!)
+POST http://localhost:8080/api/labs/{{labId}}/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{profToken}}
+
+{
+  "expiresAt": "2024-12-26T12:00:00.000Z"
+}
+
+> {%
+  client.global.set("inviteCode", response.body.data.code);
+%}
+
+### 초대 코드 검증
+GET http://localhost:8080/api/labs/invite-codes/chk-validate/{{inviteCode}}
+
+### 초대 코드 비활성화
+DELETE http://localhost:8080/api/labs/{{labId}}/invite-codes/{{inviteCode}}
+Authorization: Bearer {{profToken}}
+
+### 비활성화된 코드 검증 (410 에러 예상)
+### 전체 순차 실행 상황을 위해 남겨둠
+GET http://localhost:8080/api/labs/invite-codes/chk-validate/{{inviteCode}}
+
+### 새 초대 코드 생성 (참여 테스트용)
+POST http://localhost:8080/api/labs/{{labId}}/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{profToken}}
+
+{}
+
+> {%
+  client.global.set("inviteCode", response.body.data.code);
+%}
+
+### 학생 회원가입
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "student1",
+  "phone": "01012345678",
+  "password": "password123",
+  "name": "김학생"
+}
+
+### 학생 로그인
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "student1",
+  "password": "password123"
+}
+
+> {%
+  client.global.set("studToken", response.body.data.accessToken);
+%}
+
+### 존재하지 않는 코드로 참여 (404 에러 예상)
+POST http://localhost:8080/api/labs/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{studToken}}
+
+{
+  "code": "XXXXXXXX"
+}
+
+### 연구실 참여
+POST http://localhost:8080/api/labs/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{studToken}}
+
+{
+  "code": "{{inviteCode}}"
+}
+
+### 이미 소속된 상태에서 다시 참여 (409 에러 예상)
+POST http://localhost:8080/api/labs/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{studToken}}
+
+{
+  "code": "{{inviteCode}}"
+}
+
+### 권한 없는 학생이 초대 코드 생성 시도 (403 에러 예상)
+POST http://localhost:8080/api/labs/{{labId}}/invite-codes
+Content-Type: application/json
+Authorization: Bearer {{studToken}}
+
+{}

@@ -143,21 +143,13 @@ EXECUTE FUNCTION check_lab_leader_limit();
 
 CREATE TABLE invite_codes
 (
-    id           BIGSERIAL PRIMARY KEY,
-    lab_id       BIGINT             NOT NULL REFERENCES labs (id),
-    code         VARCHAR(20) UNIQUE NOT NULL,
-    max_uses     INTEGER,
-    current_uses INTEGER            NOT NULL DEFAULT 0,
-    expires_at   TIMESTAMPTZ,
-    is_active    BOOLEAN            NOT NULL DEFAULT true,
-    created_by   BIGINT             NOT NULL REFERENCES users (id),
-    created_at   TIMESTAMPTZ        NOT NULL DEFAULT now(),
-
-    CONSTRAINT chk_invite_uses CHECK (
-        current_uses >= 0
-            AND (max_uses IS NULL OR max_uses > 0)
-            AND (max_uses IS NULL OR current_uses <= max_uses)
-        )
+    id         BIGSERIAL PRIMARY KEY,
+    lab_id     BIGINT             NOT NULL REFERENCES labs (id),
+    code       VARCHAR(20) UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ        NOT NULL,
+    is_active  BOOLEAN            NOT NULL DEFAULT true,
+    created_by BIGINT             NOT NULL REFERENCES users (id),
+    created_at TIMESTAMPTZ        NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_invite_codes_lab_id ON invite_codes (lab_id);
