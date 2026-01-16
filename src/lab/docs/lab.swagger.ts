@@ -5,6 +5,7 @@ import { InviteCodeResponseDto } from '../dto/response/invite-code.response.dto.
 import { ValidateInviteCodeResponseDto } from '../dto/response/validate-invite-code.response.dto.js';
 import { JoinLabResponseDto } from '../dto/response/join-lab.response.dto.js';
 import { CreateInviteCodeRequestDto } from '../dto/request/create-invite-code.request.dto.js';
+import { JoinLabRequestDto } from '../dto/request/join-lab.request.dto.js';
 
 export function ApiCreateLab() {
   return applyDecorators(
@@ -83,7 +84,7 @@ export function ApiJoinLab() {
       summary: '연구실 참여',
     }),
     ApiBody({
-      type: JoinLabResponseDto,
+      type: JoinLabRequestDto,
       description: '8자리 초대 코드',
     }),
     ApiResponse({ status: 201, description: '연구실 참여 성공', type: JoinLabResponseDto }),

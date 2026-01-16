@@ -8,7 +8,7 @@ import { CreateLabResponseDto } from './dto/response/create-lab.response.dto.js'
 import { InviteCodeResponseDto } from './dto/response/invite-code.response.dto.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { randomUUID } from 'node:crypto';
-import { invite_codes, Prisma } from '../../generated/prisma/client.js';
+import { invite_codes, Prisma } from '@prisma/client';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 
@@ -196,7 +196,6 @@ export class LabService {
       return {
         labId: Number(inviteCode.lab_id),
         labName: inviteCode.labs.name,
-        userId: userId,
         role: membership.role,
       };
     });
