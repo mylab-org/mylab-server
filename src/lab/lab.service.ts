@@ -110,7 +110,11 @@ export class LabService {
   }
 
   // 초대 코드 비활성화 요청
-  async revokeInviteCode(labId: number, code: string, userId: number): Promise<void> {
+  async revokeInviteCode(
+    labId: number,
+    code: string,
+    userId: number,
+  ): Promise<{ message: string }> {
     await this.chkLabExist(labId);
     await this.chkUserPermission(userId, labId);
 
@@ -125,6 +129,8 @@ export class LabService {
     if (result.count === 0) {
       throw new CommonException(LAB_ERRORS.CODE_NOT_FOUND);
     }
+
+    return { message: '초대 코드 삭제가 완료되었습니다' };
   }
 
   // 초대 코드 검증 요청

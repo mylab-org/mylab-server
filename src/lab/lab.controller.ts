@@ -63,7 +63,7 @@ export class LabController {
     @Request() req: { user: { userId: number } },
     @Param('labId', ParseIntPipe) labId: number,
     @Param('code') code: string,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     return this.labService.revokeInviteCode(labId, code, req.user.userId);
   }
 
