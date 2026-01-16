@@ -35,7 +35,7 @@ export class LabController {
   constructor(private readonly labService: LabService) {}
 
   @UseGuards(AccessTokenGuard)
-  @Post()
+  @Post('create')
   @ApiCreateLab()
   async createLab(
     @Request() req: { user: { userId: number } },
