@@ -56,7 +56,7 @@ export class LabController {
   }
 
   @UseGuards(AccessTokenGuard)
-  @Delete(':labId/invite-codes/:code')
+  @Delete(':labId/revoke-invite-codes/:code')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRevokeInviteCode()
   async revokeInviteCode(
