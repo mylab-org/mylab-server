@@ -74,7 +74,7 @@ export class LabController {
   }
 
   @UseGuards(AccessTokenGuard)
-  @Post('invite-codes')
+  @Post('join')
   @ApiJoinLab()
   async joinLab(
     @Request() req: { user: { userId: number } },
