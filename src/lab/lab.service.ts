@@ -27,7 +27,7 @@ export class LabService {
       const lab = await tx.labs.create({
         data: {
           name: dto.labName,
-          university_name: dto.schoolName,
+          university_name: dto.universityName,
           department_name: dto.departmentName,
           professor_id: professorId,
         },

@@ -7,7 +7,7 @@ export class CreateLabResponseDto {
   @ApiProperty({ example: 'My Lab', description: '연구실 이름' })
   labName: string;
 
-  @ApiProperty({ example: 'My School', description: '연구실 소속 학교' })
+  @ApiProperty({ example: 'My university', description: '연구실 소속 학교' })
   universityName: string;
 
   @ApiProperty({ example: 'My Department', description: '연구실 소속 학과' })
