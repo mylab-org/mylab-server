@@ -157,7 +157,7 @@ $RECYCLE.BIN/
 .webpack/
 
 # prisma
-prisma/migrations/*
-!prisma/migrations/0_init
+/prisma/migrations/migration_lock.toml
+migration_lock.toml
 /generated/prisma
 generated/

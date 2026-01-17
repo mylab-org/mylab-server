@@ -1,6 +1,5 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../generated/prisma"
+  provider     = "prisma-client-js"
   moduleFormat = "esm"
 }
 
@@ -206,37 +205,48 @@ model schedules {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model users {
-  id                                    BigInt                @id @default(autoincrement())
-  username                              String                @unique
-  phone                                 String                @unique
+  id                                    BigInt          @id @default(autoincrement())
+  email                                 String          @unique
   password                              String
   name                                  String
-  degree                                String?               @default("NONE")
-  professor_email                       String?               @unique
-  is_professor_verified                 Boolean               @default(false)
-  created_at                            DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at                            DateTime              @default(now()) @db.Timestamptz(6)
+  degree                                Degree
+  is_email_verified                     Boolean         @default(false)
+  created_at                            DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at                            DateTime        @default(now()) @db.Timestamptz(6)
   refresh_token                         String?
+  auth_tokens                           auth_tokens[]
   device_tokens                         device_tokens[]
   invite_codes                          invite_codes[]
   lab_members                           lab_members[]
   labs                                  labs[]
   meeting_skips                         meeting_skips[]
   notifications                         notifications[]
-  schedules_schedules_created_byTousers schedules[]           @relation("schedules_created_byTousers")
-  schedules_schedules_updated_byTousers schedules[]           @relation("schedules_updated_byTousers")
-  verification_tokens                   verification_tokens[]
+  schedules_schedules_created_byTousers schedules[]     @relation("schedules_created_byTousers")
+  schedules_schedules_updated_byTousers schedules[]     @relation("schedules_updated_byTousers")
 }
 
-model verification_tokens {
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model auth_tokens {
   id         BigInt   @id @default(autoincrement())
   user_id    BigInt
-  type       String
+  type       TokenType
   token      String   @unique
   expires_at DateTime @db.Timestamptz(6)
   created_at DateTime @default(now()) @db.Timestamptz(6)
-  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([token], map: "idx_verification_tokens_token")
-  @@index([user_id], map: "idx_verification_tokens_user_id")
+  @@index([token], map: "idx_auth_tokens_token")
+  @@index([user_id], map: "idx_auth_tokens_user_id")
+}
+
+enum Degree {
+  BACHELOR
+  MASTER
+  DOCTOR
+  PROFESSOR
+}
+
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
 }

@@ -3,11 +3,9 @@ import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
-import { ChangePhoneRequestDto } from './dto/request/change-phone.request.dto.js';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import {
   ApiChangePassword,
-  ApiChangePhone,
   ApiDeleteUser,
   ApiGetProfile,
   ApiUpdateProfile,
@@ -50,15 +48,5 @@ export class UserController {
     @Body() dto: ChangePasswordRequestDto,
   ) {
     return this.userService.changePassword(req.user.userId, dto);
-  }
-
-  @Patch('me/phone')
-  @UseGuards(AccessTokenGuard)
-  @ApiChangePhone()
-  async changePhone(
-    @Request() req: { user: { userId: number } },
-    @Body() dto: ChangePhoneRequestDto,
-  ) {
-    return this.userService.changePhone(req.user.userId, dto);
   }
 }

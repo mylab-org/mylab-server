@@ -17,17 +17,15 @@ $$
 
 CREATE TABLE users
 (
-    id                    BIGSERIAL PRIMARY KEY,
-    username              TEXT UNIQUE NOT NULL,
-    phone                 TEXT UNIQUE NOT NULL,
-    password              TEXT        NOT NULL,
-    name                  TEXT        NOT NULL,
-    degree                TEXT                 DEFAULT 'NONE',
-    professor_email       TEXT UNIQUE,
-    is_professor_verified BOOLEAN     NOT NULL DEFAULT FALSE,
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-    refresh_token         TEXT,
+    id                BIGSERIAL PRIMARY KEY,
+    email             TEXT UNIQUE NOT NULL,
+    password          TEXT        NOT NULL,
+    name              TEXT        NOT NULL,
+    degree            TEXT        NOT NULL,
+    is_email_verified BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    refresh_token     TEXT,
 
     CONSTRAINT chk_degree CHECK (
         (degree IN ('NONE', 'BACHELOR', 'MASTER', 'DOCTOR', 'PROFESSOR'))
@@ -41,10 +39,10 @@ CREATE TRIGGER trg_users_updated_at
 EXECUTE FUNCTION set_updated_at();
 
 -- Test User (password: password123)
-INSERT INTO public.users (username, phone, password, name, degree, professor_email, is_professor_verified, created_at,
+INSERT INTO public.users (email, password, name, degree, is_email_verified, created_at,
                           updated_at)
-VALUES ('test1234', '01012341234', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR',
-        'noreply.myla3@gmail.com', default, default, default);
+VALUES ('noreply.myla3@gmail.com', '$2b$10$sdeAwH8kIrgcD78xN3vwle484hsUFPv10U4LFpSYBRLYtCZIMtvBK', '김교수', 'PROFESSOR',
+        True, default, default);
 
 CREATE TABLE labs
 (
@@ -405,15 +403,20 @@ CREATE INDEX idx_notifications_user_created_at ON notifications (user_id, create
 CREATE INDEX idx_notifications_user_is_read ON notifications (user_id, is_read);
 
 
-CREATE TABLE verification_tokens
+CREATE TABLE auth_tokens
 (
     id         BIGSERIAL PRIMARY KEY,
     user_id    BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     type       TEXT        NOT NULL,
     token      TEXT UNIQUE NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    -- 한 유저가 같은 타입의 토큰은 하나만 갖도록 제한 (선택사항: 중복 발급 방지)
+    -- UNIQUE(user_id, type)
+
+    CONSTRAINT chk_token_type CHECK (type IN ('EMAIL_VERIFY', 'PASSWORD_RESET'))
 );
 
-CREATE INDEX idx_verification_tokens_user_id ON verification_tokens (user_id);
-CREATE INDEX idx_verification_tokens_token ON verification_tokens (token);
+CREATE INDEX idx_auth_tokens_user_id ON auth_tokens (user_id);
+CREATE INDEX idx_auth_tokens_token ON auth_tokens (token); -- 검색용

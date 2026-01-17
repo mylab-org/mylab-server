@@ -1,5 +1,0 @@
-export const VERIFICATION_TYPE = {
-  EMAIL: 'EMAIL',
-  PHONE: 'PHONE',
-  PASSWORD_RESET: 'PASSWORD_RESET',
-} as const;

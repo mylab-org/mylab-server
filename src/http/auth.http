@@ -1,71 +1,121 @@
-### 회원가입 (기본)
-POST http://localhost:8080/api/auth/register
+### ============================================
+### AUTH API 간단 테스트 (핵심만)
+### ============================================
+
+@url = http://localhost:8080/api/auth
+@email = noreply.myla3@gmail.com
+@password = password123!
+
+
+# ============================================
+# 정상 플로우
+# ============================================
+
+### 1. 회원가입
+POST {{url}}/register
 Content-Type: application/json
 
 {
-  "username": "student1",
-  "phone": "01012345678",
-  "password": "password123",
-  "name": "김학생"
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "passwordConfirm": "{{password}}",
+  "name": "김철수",
+  "degree": "BACHELOR"
 }
 
-### 로그인 (username)
-POST http://localhost:8080/api/auth/login
+### 2. 이메일 인증 (토큰 입력 필요)
+# DB에서 토큰 확인: SELECT token FROM auth_tokens WHERE type = 'EMAIL_VERIFY' ORDER BY created_at DESC LIMIT 1;
+GET {{url}}/verify-email?token=4ff4260c291f37d7a7d11fb5fb44ba345951f7fa485055a95df64067b1ecabfc
+
+### 3. 로그인
+POST {{url}}/login
 Content-Type: application/json
 
 {
-  "username": "student1",
-  "password": "password123"
+  "email": "{{email}}",
+  "password": "{{password}}"
 }
 
 > {%
-  client.global.set("accessToken", response.body.data.accessToken);
-  client.global.set("refreshToken", response.body.data.refreshToken);
+  client.global.set("accessToken", response.body.accessToken);
+  client.global.set("refreshToken", response.body.refreshToken);
+  client.log("✅ 로그인 성공!");
 %}
 
-### 로그인 (phone)
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
 
-{
-  "phone": "01012345678",
-  "password": "password123"
-}
+### 4. 인증이 필요한 API 호출 (예시)
+GET http://localhost:8080/api/users/me
+Authorization: Bearer {{accessToken}}
 
-> {%
-  client.global.set("accessToken", response.body.data.accessToken);
-  client.global.set("refreshToken", response.body.data.refreshToken);
-%}
 
-### 토큰 재발급
-POST http://localhost:8080/api/auth/refresh
+### 5. 토큰 갱신
+POST {{url}}/refresh
 Authorization: Bearer {{refreshToken}}
 
 > {%
-  client.global.set("accessToken", response.body.data.accessToken);
-  client.global.set("refreshToken", response.body.data.refreshToken);
+  client.global.set("accessToken", response.body.accessToken);
+  client.global.set("refreshToken", response.body.refreshToken);
+  client.log("✅ 토큰 갱신 성공!");
 %}
 
-### 로그아웃
-POST http://localhost:8080/api/auth/logout
+### 6. 로그아웃
+POST {{url}}/logout
 Authorization: Bearer {{accessToken}}
 
-### 에러 - 로그인 비밀번호 틀림
-POST http://localhost:8080/api/auth/login
+
+# ============================================
+# 에러 케이스
+# ============================================
+
+### 이메일 중복
+POST {{url}}/register
 Content-Type: application/json
 
 {
-  "username": "student1",
-  "password": "wrongpassword"
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "passwordConfirm": "{{password}}",
+  "name": "김철수",
+  "degree": "BACHELOR"
 }
 
-### 에러 - 로그인 아이디/전화번호 없음
-POST http://localhost:8080/api/auth/login
+
+### 비밀번호 불일치
+POST {{url}}/register
 Content-Type: application/json
 
 {
-  "password": "password123"
+  "email": "test@university.ac.kr",
+  "password": "{{password}}",
+  "passwordConfirm": "DifferentPassword!",
+  "name": "김철수",
+  "degree": "BACHELOR"
 }
 
-### 에러 - 토큰 재발급 토큰 없음
-POST http://localhost:8080/api/auth/refresh
+
+### 이메일 미인증 로그인
+POST {{url}}/login
+Content-Type: application/json
+
+{
+  "email": "test@university.ac.kr",
+  "password": "{{password}}"
+}
+
+
+### 잘못된 비밀번호
+POST {{url}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "WrongPassword123!"
+}
+
+
+### 유효하지 않은 인증 토큰
+GET {{url}}/verify-email?token=invalid_token
+
+
+### 토큰 없이 갱신 시도
+POST {{url}}/refresh

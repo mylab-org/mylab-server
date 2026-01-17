@@ -13,7 +13,7 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'access_toke
     });
   }
 
-  validate(payload: { sub: number }) {
+  validate(payload: { sub: string }) {
     return { userId: payload.sub };
   }
 }

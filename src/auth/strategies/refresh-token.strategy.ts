@@ -17,7 +17,7 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'refresh_to
     });
   }
 
-  async validate(req: Request, payload: { sub: number }) {
+  async validate(req: Request, payload: { sub: string }) {
     const authHeader = req.headers.authorization;
     const refreshToken = authHeader?.split(' ')[1];
 

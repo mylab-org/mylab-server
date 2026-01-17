@@ -8,7 +8,6 @@ import { PassportModule } from '@nestjs/passport';
 import { EXPIRES_IN, JWT_ACCESS_SECRET } from './constants/jwt.config.js';
 import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
 import { RefreshTokenStrategy } from './strategies/refresh-token.strategy.js';
-import { VerificationModule } from '../verification/verification.module.js';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { VerificationModule } from '../verification/verification.module.js';
       secret: JWT_ACCESS_SECRET,
       signOptions: { expiresIn: EXPIRES_IN.JWT_ACCESS_TOKEN },
     }),
-    VerificationModule,
   ],
   providers: [
     AuthService,
