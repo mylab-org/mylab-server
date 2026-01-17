@@ -8,6 +8,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Degree } from '@prisma/client';
 import { IsUniversityEmail } from '../../../common/decoraters/is-university-email.decorater.js';
 import { Match } from '../../../common/decoraters/match.decorator.js';
 
@@ -29,7 +30,16 @@ export class RegisterRequestDto {
   @IsUniversityEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123', description: '비밀번호 (8자 이상)' })
+  @ApiProperty({
+    description: '학위',
+    enum: Degree,
+    example: Degree.BACHELOR,
+  })
+  @IsNotEmpty({ message: '학위를 입력하세요' })
+  @IsEnum(Degree, { message: '유효하지 않은 학위입니다' })
+  degree: Degree;
+
+  @ApiProperty({ example: 'password123!', description: '비밀번호' })
   @IsString()
   @IsNotEmpty({ message: '비밀번호를 입력하세요' })
   @Matches(/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*~])[a-zA-Z0-9!@#$%^&*~]{6,30}$/, {
