@@ -7,7 +7,7 @@ export class ValidateInviteCodeResponseDto {
   @ApiPropertyOptional({ example: 'My Lab', description: '연구실 이름' })
   labName?: string;
 
-  @ApiPropertyOptional({ example: 'My School', description: '학교 이름' })
+  @ApiPropertyOptional({ example: 'My university', description: '학교 이름' })
   universityName?: string;
 
   @ApiPropertyOptional({ example: 'My Department', description: '학과 이름' })

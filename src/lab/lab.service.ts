@@ -8,7 +8,7 @@ import { CreateLabResponseDto } from './dto/response/create-lab.response.dto.js'
 import { InviteCodeResponseDto } from './dto/response/invite-code.response.dto.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { randomUUID } from 'node:crypto';
-import { invite_codes, Prisma } from '../../generated/prisma/client.js';
+import { invite_codes, Prisma } from '@prisma/client';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 
@@ -27,7 +27,7 @@ export class LabService {
       const lab = await tx.labs.create({
         data: {
           name: dto.labName,
-          university_name: dto.schoolName,
+          university_name: dto.universityName,
           department_name: dto.departmentName,
           professor_id: professorId,
         },
@@ -110,7 +110,11 @@ export class LabService {
   }
 
   // 초대 코드 비활성화 요청
-  async revokeInviteCode(labId: number, code: string, userId: number): Promise<void> {
+  async revokeInviteCode(
+    labId: number,
+    code: string,
+    userId: number,
+  ): Promise<{ message: string }> {
     await this.chkLabExist(labId);
     await this.chkUserPermission(userId, labId);
 
@@ -125,6 +129,8 @@ export class LabService {
     if (result.count === 0) {
       throw new CommonException(LAB_ERRORS.CODE_NOT_FOUND);
     }
+
+    return { message: '초대 코드 삭제가 완료되었습니다' };
   }
 
   // 초대 코드 검증 요청
@@ -190,7 +196,6 @@ export class LabService {
       return {
         labId: Number(inviteCode.lab_id),
         labName: inviteCode.labs.name,
-        userId: userId,
         role: membership.role,
       };
     });

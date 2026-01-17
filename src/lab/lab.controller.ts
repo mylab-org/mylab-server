@@ -35,7 +35,7 @@ export class LabController {
   constructor(private readonly labService: LabService) {}
 
   @UseGuards(AccessTokenGuard)
-  @Post()
+  @Post('create')
   @ApiCreateLab()
   async createLab(
     @Request() req: { user: { userId: number } },
@@ -56,14 +56,14 @@ export class LabController {
   }
 
   @UseGuards(AccessTokenGuard)
-  @Delete(':labId/invite-codes/:code')
+  @Delete(':labId/revoke-invite-codes/:code')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRevokeInviteCode()
   async revokeInviteCode(
     @Request() req: { user: { userId: number } },
     @Param('labId', ParseIntPipe) labId: number,
     @Param('code') code: string,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     return this.labService.revokeInviteCode(labId, code, req.user.userId);
   }
 
@@ -74,7 +74,7 @@ export class LabController {
   }
 
   @UseGuards(AccessTokenGuard)
-  @Post('invite-codes')
+  @Post('join')
   @ApiJoinLab()
   async joinLab(
     @Request() req: { user: { userId: number } },
