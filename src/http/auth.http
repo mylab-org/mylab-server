@@ -119,3 +119,96 @@ GET {{url}}/verify-email?token=invalid_token
 
 ### 토큰 없이 갱신 시도
 POST {{url}}/refresh
+
+
+
+# ============================================
+# Rate Limiting 테스트
+# ============================================
+
+### 1분에 2번 회원가입 시도 (2번째 실패해야 함)
+POST {{url}}/register
+Content-Type: application/json
+
+{
+  "email": "ratelimit-test@test.com",
+  "password": "{{password}}",
+  "passwordConfirm": "{{password}}",
+  "name": "테스트",
+  "degree": "BACHELOR"
+}
+
+### 바로 다시 시도 → 429 에러 나와야 함
+POST {{url}}/register
+Content-Type: application/json
+
+{
+  "email": "ratelimit-test@test.com",
+  "password": "{{password}}",
+  "passwordConfirm": "{{password}}",
+  "name": "테스트",
+  "degree": "BACHELOR"
+}
+
+### 인증 메일 재발송
+POST {{url}}/resend-verification
+Content-Type: application/json
+
+{
+  "email": "ratelimit-test@test.com"
+}
+
+### 바로 다시 재발송 → 429 에러 나와야 함
+POST {{url}}/resend-verification
+Content-Type: application/json
+
+{
+  "email": "ratelimit-test@test.com"
+}
+
+
+
+###
+
+
+# ============================================
+# 미인증 유저 덮어쓰기 테스트
+# ============================================
+
+
+### 1. 미인증 유저 생성
+POST {{url}}/register
+Content-Type: application/json
+
+{
+  "email": "overwrite-test@test.com",
+  "password": "OldPassword123!",
+  "passwordConfirm": "OldPassword123!",
+  "name": "구이름",
+  "degree": "BACHELOR"
+}
+
+### 2. 인증 안 하고 다시 가입 (정보 덮어쓰기)
+POST {{url}}/register
+Content-Type: application/json
+
+{
+  "email": "overwrite-test@test.com",
+  "password": "NewPassword123!",
+  "passwordConfirm": "NewPassword123!",
+  "name": "신이름",
+  "degree": "MASTER"
+}
+
+### 3. 새 비밀번호로 로그인 시도 (인증 필요 에러)
+POST {{url}}/login
+Content-Type: application/json
+
+{
+  "email": "overwrite-test@test.com",
+  "password": "NewPassword123!"
+}
+
+### 4. 이메일 인증 후 로그인
+# (DB에서 토큰 확인 후 verify-email 호출)
+# 그 다음 위 로그인 다시 시도

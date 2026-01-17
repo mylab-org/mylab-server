@@ -8,10 +8,16 @@ import { PassportModule } from '@nestjs/passport';
 import { EXPIRES_IN, JWT_ACCESS_SECRET } from './constants/jwt.config.js';
 import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
 import { RefreshTokenStrategy } from './strategies/refresh-token.strategy.js';
+import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
+import { RateLimitService } from './rate-limit.service.js';
+import { CleanupService } from './cleanup.service.js';
 
 @Module({
   imports: [
     PassportModule,
+    CacheModule.register(),
+    ScheduleModule.forRoot(),
     JwtModule.register({
       global: true,
       secret: JWT_ACCESS_SECRET,
@@ -24,6 +30,8 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy.js';
     AccessTokenStrategy,
     RefreshTokenGuard,
     RefreshTokenStrategy,
+    RateLimitService,
+    CleanupService,
   ],
   controllers: [AuthController],
   exports: [AuthService, AccessTokenGuard],

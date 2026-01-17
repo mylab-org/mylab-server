@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { LoginRequestDto } from './dto/request/login.request.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommonException } from '../common/exceptions/common.exception.js';
@@ -12,7 +12,8 @@ import { RegisterRequestDto } from './dto/request/register.request.dto.js';
 import { ResendVerificationDto } from './dto/request/resend-verification.dto.js';
 import { getEmailVerificationTemplate } from './templates/email-verification.template.js';
 import nodemailer from 'nodemailer';
-import { TokenType } from '@prisma/client';
+import { Prisma, TokenType } from '@prisma/client';
+import { RateLimitService } from './rate-limit.service.js';
 
 @Injectable()
 export class AuthService {
@@ -28,63 +29,82 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private rateLimitService: RateLimitService,
   ) {}
 
   async register(dto: RegisterRequestDto) {
-    const exists = await this.prisma.users.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (exists) {
-      throw new CommonException(AUTH_ERROR.DUPLICATE_EMAIL);
-    }
+    await this.rateLimitService.checkEmailRateLimit(dto.email);
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const { user, token } = await this.prisma.$transaction(
-      async (tx) => {
-        const newUser = await tx.users.create({
-          data: {
-            email: dto.email,
-            password: hashedPassword,
-            name: dto.name,
-            degree: dto.degree,
-            is_email_verified: false,
-          },
-        });
+    try {
+      const { user, token } = await this.prisma.$transaction(
+        async (tx) => {
+          const existingUser = await tx.users.findUnique({
+            where: { email: dto.email },
+          });
 
-        await tx.auth_tokens.deleteMany({
-          where: {
-            user_id: newUser.id,
-            type: TokenType.EMAIL_VERIFY,
-          },
-        });
+          if (existingUser?.is_email_verified) {
+            throw new CommonException(AUTH_ERROR.DUPLICATE_EMAIL);
+          }
 
-        const verifyTokenString = crypto.randomBytes(32).toString('hex');
-        const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          const user = existingUser
+            ? await tx.users.update({
+                where: { id: existingUser.id },
+                data: {
+                  password: hashedPassword,
+                  name: dto.name,
+                  degree: dto.degree,
+                },
+              })
+            : await tx.users.create({
+                data: {
+                  email: dto.email,
+                  password: hashedPassword,
+                  name: dto.name,
+                  degree: dto.degree,
+                  is_email_verified: false,
+                },
+              });
 
-        const newToken = await tx.auth_tokens.create({
-          data: {
-            user_id: newUser.id,
-            type: TokenType.EMAIL_VERIFY,
-            token: verifyTokenString,
-            expires_at: verifyExpiresAt,
-          },
-        });
+          await tx.auth_tokens.deleteMany({
+            where: {
+              user_id: user.id,
+              type: TokenType.EMAIL_VERIFY,
+            },
+          });
 
-        return { user: newUser, token: newToken };
-      },
-      {
-        maxWait: 5000,
-        timeout: 10000,
-      },
-    );
+          const verifyTokenString = crypto.randomBytes(32).toString('hex');
+          const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await this.sendVerificationEmail(user.email, user.name, token.token);
+          const token = await tx.auth_tokens.create({
+            data: {
+              user_id: user.id,
+              type: TokenType.EMAIL_VERIFY,
+              token: verifyTokenString,
+              expires_at: verifyExpiresAt,
+            },
+          });
 
-    return {
-      message: '가입이 완료되었습니다. 이메일 인증을 진행해주세요.',
-    };
+          return { user, token };
+        },
+        {
+          maxWait: 5000,
+          timeout: 10000,
+        },
+      );
+
+      this.sendVerificationEmail(user.email, user.name, token.token).catch(() => {});
+
+      return {
+        message: '가입이 완료되었습니다. 이메일 인증을 진행해주세요.',
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new CommonException(AUTH_ERROR.DUPLICATE_EMAIL);
+      }
+      throw error;
+    }
   }
 
   async verifyEmail(token: string) {
@@ -101,7 +121,7 @@ export class AuthService {
       if (authToken) {
         await this.prisma.auth_tokens.delete({ where: { id: authToken.id } });
       }
-      throw new CommonException(AUTH_ERROR.INVALID_VERIFY_TOKEN);
+      throw new CommonException(AUTH_ERROR.INVALID_OR_EXPIRED_TOKEN);
     }
 
     if (authToken.users.is_email_verified) {
@@ -137,6 +157,8 @@ export class AuthService {
   }
 
   async resendVerificationEmail(dto: ResendVerificationDto) {
+    await this.rateLimitService.checkEmailRateLimit(dto.email);
+
     const user = await this.prisma.users.findUnique({
       where: { email: dto.email },
     });
@@ -161,7 +183,11 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+    const isPasswordValid = user
+      ? await bcrypt.compare(dto.password, user.password)
+      : await bcrypt.compare(dto.password, '$2b$10$dummyhashfortimingattackprevention1234567890');
+
+    if (!user || !isPasswordValid) {
       throw new CommonException(AUTH_ERROR.INVALID_CREDENTIALS);
     }
 
@@ -285,11 +311,7 @@ export class AuthService {
       });
     } catch (e) {
       console.error('Email send failed:', e);
-      throw new CommonException({
-        code: 'EMAIL_SEND_FAILED',
-        message: '이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-      });
+      throw new CommonException(AUTH_ERROR.EMAIL_SEND_FAILED);
     }
   }
 }
