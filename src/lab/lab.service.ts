@@ -213,8 +213,12 @@ export class LabService {
       throw new CommonException(LAB_ERRORS.USER_NOT_FOUND);
     }
 
-    if (user.is_professor_verified === false) {
+    if (user.is_email_verified === false) {
       throw new CommonException(LAB_ERRORS.NOT_VERIFIED_PROFESSOR);
+    }
+
+    if (user.degree !== 'PROFESSOR') {
+      throw new CommonException(LAB_ERRORS.PERMISSION_DENIED);
     }
   }
 
