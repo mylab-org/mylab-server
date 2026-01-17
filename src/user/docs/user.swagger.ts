@@ -38,13 +38,3 @@ export function ApiChangePassword() {
     ApiResponse({ status: 401, description: '인증 실패' }),
   );
 }
-
-export function ApiChangePhone() {
-  return applyDecorators(
-    ApiBearerAuth(),
-    ApiOperation({ summary: '전화번호 변경' }),
-    ApiResponse({ status: 200, description: '변경 성공' }),
-    ApiResponse({ status: 401, description: '인증 실패' }),
-    ApiResponse({ status: 409, description: '중복된 전화번호' }),
-  );
-}
