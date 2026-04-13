@@ -6,6 +6,7 @@ import { ValidateInviteCodeResponseDto } from '../dto/response/validate-invite-c
 import { JoinLabResponseDto } from '../dto/response/join-lab.response.dto.js';
 import { CreateInviteCodeRequestDto } from '../dto/request/create-invite-code.request.dto.js';
 import { JoinLabRequestDto } from '../dto/request/join-lab.request.dto.js';
+import { GetMembersResponseDto } from '../dto/response/get-members.dto.js';
 
 export function ApiCreateLab() {
   return applyDecorators(
@@ -92,5 +93,17 @@ export function ApiJoinLab() {
     ApiResponse({ status: 404, description: '존재하지 않는 초대 코드' }),
     ApiResponse({ status: 409, description: '이미 연구실에 소속된 사용자' }),
     ApiResponse({ status: 410, description: '만료된 초대 코드 / 비활성화된 초대 코드' }),
+  );
+}
+
+export function ApiGetMembers() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 멤버 조회',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiResponse({ status: 200, description: '조회 성공', type: [GetMembersResponseDto] }),
+    ApiResponse({ status: 404, description: '존재하지 않는 연구실' }),
   );
 }
