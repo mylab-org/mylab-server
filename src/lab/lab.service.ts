@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { invite_codes, Prisma } from '@prisma/client';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
+import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
 
 type PrismaClient = PrismaService | Prisma.TransactionClient;
 
@@ -199,6 +200,27 @@ export class LabService {
         role: membership.role,
       };
     });
+  }
+
+  // 연구실 멤버 조회
+  async getMembers(labId: number): Promise<GetMembersResponseDto[]> {
+    const members = await this.prisma.lab_members.findMany({
+      where: { lab_id: BigInt(labId), left_at: null },
+      include: {
+        users: {
+          select: {
+            name: true,
+            degree: true,
+          },
+        },
+      },
+    });
+
+    return members.map((member) => ({
+      name: member.users.name,
+      degree: member.users.degree,
+      role: member.role,
+    }));
   }
 
   /* ##### 내장 함수 ##### */

@@ -24,10 +24,12 @@ import {
   ApiCreateLab,
   ApiJoinLab,
   ApiRevokeInviteCode,
+  ApiGetMembers,
 } from './docs/lab.swagger.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
+import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
 
 @ApiTags('Labs')
 @Controller('labs')
@@ -81,5 +83,11 @@ export class LabController {
     @Body() dto: JoinLabRequestDto,
   ): Promise<JoinLabResponseDto> {
     return this.labService.joinLab(req.user.userId, dto);
+  }
+
+  @Get(':labId/members')
+  @ApiGetMembers()
+  async getMembers(@Param('labId', ParseIntPipe) labId: number): Promise<GetMembersResponseDto[]> {
+    return this.labService.getMembers(labId);
   }
 }
