@@ -42,6 +42,16 @@ export class UserService {
       throw new CommonException(USER_ERROR.NOT_FOUND);
     }
 
+    if (dto.degree) {
+      if (user?.degree === 'PROFESSOR') {
+        throw new CommonException(USER_ERROR.DEGREE_CHANGE_NOT_ALLOWED);
+      }
+
+      if (dto?.degree === 'PROFESSOR') {
+        throw new CommonException(USER_ERROR.DEGREE_TO_PROFESSOR_NOT_ALLOWED);
+      }
+    }
+
     return this.prisma.users.update({
       where: { id: BigInt(id) },
       data: dto,
