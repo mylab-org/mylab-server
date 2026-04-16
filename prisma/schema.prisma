@@ -84,6 +84,7 @@ model labs {
   users            users              @relation(fields: [professor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   meeting_routines meeting_routines[]
   schedules        schedules[]
+  board_categories board_categories[]
 
   @@index([professor_id], map: "idx_labs_professor_id")
   @@index([status], map: "idx_labs_status")
@@ -223,20 +224,84 @@ model users {
   notifications                         notifications[]
   schedules_schedules_created_byTousers schedules[]     @relation("schedules_created_byTousers")
   schedules_schedules_updated_byTousers schedules[]     @relation("schedules_updated_byTousers")
+  post                                  posts[]
+  comments                              comments[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model auth_tokens {
-  id         BigInt   @id @default(autoincrement())
+  id         BigInt    @id @default(autoincrement())
   user_id    BigInt
   type       TokenType
-  token      String   @unique
-  expires_at DateTime @db.Timestamptz(6)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  token      String    @unique
+  expires_at DateTime  @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([token], map: "idx_auth_tokens_token")
   @@index([user_id], map: "idx_auth_tokens_user_id")
+}
+
+// 1. 게시판 카테고리 (자유게시판, 공지사항 등)
+model board_categories {
+  id          BigInt  @id @default(autoincrement())
+  name        String // "자유게시판", "공지사항"
+  description String?
+
+  // lab_id가 null이면 서비스 전체 게시판, 값이 있으면 해당 연구실 전용 게시판
+  lab_id BigInt?
+  labs   labs?   @relation(fields: [lab_id], references: [id])
+
+  posts posts[]
+
+  @@index([lab_id])
+}
+
+// 2. 게시글
+model posts {
+  id          BigInt           @id @default(autoincrement())
+  category_id BigInt
+  author_id   BigInt
+  title       String
+  content     String           @db.Text
+  created_at  DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime         @default(now()) @db.Timestamptz(6)
+  categories  board_categories @relation(fields: [category_id], references: [id])
+  author      users            @relation(fields: [author_id], references: [id])
+  like_count  Int              @default(0)
+  post_images post_images[]
+  comments    comments[]
+
+  @@index([category_id])
+  @@index([author_id])
+}
+
+// 3. 게시글 이미지 (사진 첨부)
+model post_images {
+  id        BigInt @id @default(autoincrement())
+  post_id   BigInt
+  image_url String
+  order     Int    @default(0) // 사진 순서
+
+  posts posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
+}
+
+// 4. 댓글 및 대댓글
+model comments {
+  id        BigInt @id @default(autoincrement())
+  post_id   BigInt
+  author_id BigInt
+  content   String @db.Text
+
+  // 대댓글 구현을 위한 셀프 참조
+  parent_id      BigInt? // null이면 원댓글, 값이 있으면 대댓글
+  parent_comment comments?  @relation("comment_replies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies        comments[] @relation("comment_replies")
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  posts  posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  author users @relation(fields: [author_id], references: [id])
 }
 
 enum Degree {
