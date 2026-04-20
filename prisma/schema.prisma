@@ -55,7 +55,7 @@ model lab_members {
   id                    BigInt                  @id @default(autoincrement())
   user_id               BigInt
   lab_id                BigInt
-  role                  String                  @default("MEMBER")
+  role                  Role                    @default(MEMBER)
   joined_at             DateTime                @default(now()) @db.Timestamptz(6)
   left_at               DateTime?               @db.Timestamptz(6)
   labs                  labs                    @relation(fields: [lab_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -315,4 +315,11 @@ enum Degree {
 enum TokenType {
   EMAIL_VERIFY
   PASSWORD_RESET
+}
+
+enum Role {
+  PROFESSOR
+  LAB_LEADER
+  SUB_LEADER
+  MEMBER
 }
