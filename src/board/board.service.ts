@@ -6,7 +6,7 @@ import {
 } from './dto/response/get-category.response.dto.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
 import { plainToInstance } from 'class-transformer';
-import { GetPostResponseDto } from './dto/response/get-board.response.dto.js';
+import { CreateBoardResponseDto } from './dto/response/create-board.response.dto.js';
 
 @Injectable()
 export class BoardService {
@@ -51,23 +51,83 @@ export class BoardService {
     );
   }
 
-  async getBoard(userId: number, categoryId: number) {
+  // async getBoard(userId: number, categoryId: number) {
+  //   await this.chkUserAccessBoard(userId, categoryId);
+  //
+  //   return this.prisma.posts.findMany({
+  //     where: {
+  //       category_id: BigInt(categoryId),
+  //     },
+  //     orderBy: {
+  //       created_at: 'desc',
+  //     },
+  //   });
+  // }
+  async getBoard(userId: number, categoryId: number, page: number = 1, pageSize: number = 20) {
+    // 1. 게시판 접근 권한 확인
     await this.chkUserAccessBoard(userId, categoryId);
 
-    return this.prisma.posts.findMany({
-      where: {
-        category_id: BigInt(categoryId),
+    // 1. 전체 게시글 개수와 목록 조회를 병렬로 실행
+    const [posts, totalCount] = await this.prisma.$transaction([
+      this.prisma.posts.findMany({
+        where: { category_id: BigInt(categoryId) },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { created_at: 'desc' },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              degree: true,
+              lab_members: {
+                // <--- 이 부분이 DTO의 Transform에서 사용됨
+                where: { left_at: null },
+                take: 1,
+                select: {
+                  labs: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          comments: {
+            where: { parent_id: null }, // 최상위 댓글만 먼저 가져옴
+            include: {
+              author: { select: { name: true } },
+              replies: {
+                // 대댓글 포함
+                include: {
+                  author: { select: { name: true } },
+                },
+              },
+            },
+            orderBy: { created_at: 'asc' }, // 댓글은 오래된 순서대로
+          },
+          _count: {
+            select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
+          },
+        },
+      }),
+      this.prisma.posts.count({
+        where: { category_id: BigInt(categoryId) },
+      }),
+    ]);
+
+    return {
+      posts,
+      page: {
+        currentPage: page,
+        pageSize: pageSize,
+        totalCount: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
       },
-      orderBy: {
-        created_at: 'desc',
-      },
-    });
+    };
   }
 
   async createBoard(userId: number, categoryId: number, boardDto: CreateUpdateBoardRequest) {
     await this.chkUserAccessBoard(userId, categoryId);
 
-    const newPost = await this.prisma.posts.create({
+    return this.prisma.posts.create({
       data: {
         title: boardDto.title,
         content: boardDto.content,
@@ -101,10 +161,6 @@ export class BoardService {
           },
         },
       },
-    });
-
-    return plainToInstance(GetPostResponseDto, newPost, {
-      excludeExtraneousValues: true, // @Expose가 붙지 않은 필드(lab_members 등)는 자동으로 제외
     });
   }
 

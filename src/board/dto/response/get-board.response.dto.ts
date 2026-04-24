@@ -1,65 +1,113 @@
-import { Expose, Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { Expose, Transform, Type } from 'class-transformer';
+import { BoardAuthorDto, BoardLabDto } from './create-board.response.dto.js';
 
-export class PostAuthorDto {
-  @ApiProperty({ example: '1', description: '작성자 ID' })
+// [0] 댓글/대댓글을 위한 DTO
+export class CommentDto {
+  @ApiProperty({ example: '10' })
   @Expose()
   id: string;
 
-  @ApiProperty({ example: '홍길동', description: '작성자 이름' })
+  @ApiProperty({ example: '댓글 내용입니다.' })
   @Expose()
-  name: string;
+  content: string;
 
-  @ApiProperty({ example: 'MASTER', description: '학위' })
+  @ApiProperty({ example: '2026-04-25T03:00:00Z' })
   @Expose()
-  degree: string;
+  created_at: Date;
+
+  @ApiProperty({ example: { name: '오진영' } })
+  @Expose()
+  author: { name: string };
+
+  @ApiProperty({ type: [CommentDto], description: '대댓글 배열', required: false })
+  @Expose()
+  @Type(() => CommentDto)
+  replies?: CommentDto[];
 }
 
-export class PostLabDto {
-  @ApiProperty({ example: '1', description: '연구실 ID' })
-  @Expose()
-  id: string;
-
-  @ApiProperty({ example: '인공지능 연구실', description: '연구실 이름' })
-  @Expose()
-  name: string;
-}
-
-export class GetPostResponseDto {
+// [1] 개별 게시글 DTO
+export class PostItemDto {
   @ApiProperty({ example: '1' })
   @Expose()
   id: string;
 
-  @ApiProperty({ example: '게시글 제목' })
+  @ApiProperty({ example: '게시글 제목입니다.' })
   @Expose()
   title: string;
 
-  @ApiProperty({ example: '게시글 내용' })
+  @ApiProperty({ example: '게시글 본문입니다.' })
   @Expose()
   content: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-04-25T00:00:00Z' })
   @Expose()
   created_at: Date;
 
-  @ApiProperty()
+  @ApiProperty({ type: BoardAuthorDto })
   @Expose()
-  updated_at: Date;
+  @Type(() => BoardAuthorDto)
+  author: BoardAuthorDto;
 
-  @ApiProperty({ example: 0 })
-  @Expose()
-  like_count: number;
-
-  @ApiProperty({ type: PostAuthorDto }) // 객체 타입 명시
-  @Expose()
-  @Type(() => PostAuthorDto)
-  author: PostAuthorDto;
-
-  @ApiProperty({ type: PostLabDto, nullable: true }) // Transform되는 필드도 타입을 명시
+  @ApiProperty({ type: BoardLabDto, nullable: true })
   @Expose()
   @Transform(({ obj }) => {
-    const lab = obj.author?.lab_members?.[0]?.labs;
+    const currentObj = obj as {
+      author?: {
+        lab_members?: Array<{
+          labs?: { id: number | bigint; name: string };
+        }>;
+      };
+    };
+
+    const lab = currentObj.author?.lab_members?.[0]?.labs;
     return lab ? { id: lab.id.toString(), name: lab.name } : null;
   })
-  lab: PostLabDto;
+  lab: BoardLabDto;
+
+  @ApiProperty({ example: 5 })
+  @Expose()
+  @Transform(({ obj }) => {
+    const source = obj as { _count?: { comments: number } };
+    return source._count?.comments ?? 0;
+  })
+  commentCount: number;
+
+  // 댓글 데이터 추가
+  @ApiProperty({ type: [CommentDto] })
+  @Expose()
+  @Type(() => CommentDto)
+  comments: CommentDto[];
+}
+
+// [2] 페이지 메타 정보 DTO
+export class PaginationMetaDto {
+  @ApiProperty({ example: 1 })
+  @Expose()
+  currentPage: number;
+
+  @ApiProperty({ example: 20 })
+  @Expose()
+  pageSize: number;
+
+  @ApiProperty({ example: 100 })
+  @Expose()
+  totalCount: number;
+
+  @ApiProperty({ example: 5 })
+  @Expose()
+  totalPages: number;
+}
+
+// [3] 최종 전체 응답 DTO
+export class GetBoardResponseDto {
+  @ApiProperty({ type: [PostItemDto] })
+  @Expose()
+  @Type(() => PostItemDto)
+  posts: PostItemDto[];
+
+  @ApiProperty({ type: PaginationMetaDto })
+  @Expose()
+  @Type(() => PaginationMetaDto)
+  page: PaginationMetaDto;
 }

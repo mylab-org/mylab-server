@@ -1,7 +1,8 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { GetCategoryResponseDto } from '../dto/response/get-category.response.dto.js';
-import { GetPostResponseDto } from '../dto/response/get-board.response.dto.js';
+import { CreateBoardResponseDto } from '../dto/response/create-board.response.dto.js';
+import { GetBoardResponseDto } from '../dto/response/get-board.response.dto.js';
 
 export const ApiGetCategory = () => {
   return applyDecorators(
@@ -21,6 +22,8 @@ export const ApiGetBoard = () => {
       summary: '게시판 목록 조회',
     }),
     ApiParam({ name: 'categoryId', description: '카테고리 ID', type: Number }),
+    ApiQuery({ name: 'page', required: false, type: Number }),
+    ApiResponse({ status: 200, description: '성공', type: GetBoardResponseDto }),
   );
 };
 
@@ -30,7 +33,7 @@ export const ApiCreateBoard = () => {
     ApiOperation({
       summary: '게시판 글 작성',
     }),
-    ApiResponse({ status: 200, description: '성공', type: GetPostResponseDto }),
+    ApiResponse({ status: 200, description: '성공', type: CreateBoardResponseDto }),
   );
 };
 

@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +23,10 @@ import {
   ApiUpdateBoard,
 } from './docs/board.swagger.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
+import { plainToInstance } from 'class-transformer';
+import { CreateBoardResponseDto } from './dto/response/create-board.response.dto.js';
+import { GetBoardResponseDto } from './dto/response/get-board.response.dto.js';
+import { User } from '../common/decoraters/user.decorator.js';
 
 @Controller('board')
 export class BoardController {
@@ -29,43 +35,49 @@ export class BoardController {
   @UseGuards(AccessTokenGuard)
   @Get(':labId/category')
   @ApiGetCategory()
-  async getCategories(
-    @Request() req: { user: { userId: number } },
-    @Param('labId', ParseIntPipe) labId: number,
-  ) {
-    return this.boardService.getCategory(req.user.userId, labId);
+  async getCategories(@User('userId') userId: number, @Param('labId', ParseIntPipe) labId: number) {
+    return this.boardService.getCategory(userId, labId);
   }
 
   @UseGuards(AccessTokenGuard)
   @Get(':categoryId')
   @ApiGetBoard()
   async getBoard(
-    @Request() req: { user: { userId: number } },
+    @User('userId') userId: number,
     @Param('categoryId', ParseIntPipe) categoryId: number,
+    @Query('page', new DefaultValuePipe(1)) page: number,
   ) {
-    return this.boardService.getBoard(req.user.userId, categoryId);
+    const response = await this.boardService.getBoard(userId, categoryId, page);
+
+    return plainToInstance(GetBoardResponseDto, response, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AccessTokenGuard)
   @Post(':categoryId')
   @ApiCreateBoard()
   async createBoard(
-    @Request() req: { user: { userId: number } },
+    @User('userId') userId: number,
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @Body() board: CreateUpdateBoardRequest,
   ) {
-    return this.boardService.createBoard(req.user.userId, categoryId, board);
+    const response = await this.boardService.createBoard(userId, categoryId, board);
+
+    return plainToInstance(CreateBoardResponseDto, response, {
+      excludeExtraneousValues: true, // @Expose가 붙지 않은 필드(lab_members 등)는 자동으로 제외
+    });
   }
 
   @UseGuards(AccessTokenGuard)
   @Patch('/:pid')
   @ApiUpdateBoard()
   async updateBoard(
-    @Request() req: { user: { userId: number } },
+    @User('userId') userId: number,
     @Param('pid', ParseIntPipe) pid: number,
     @Body() board: CreateUpdateBoardRequest,
   ) {
-    const message = await this.boardService.updateBoard(req.user.userId, pid, board);
+    const message = await this.boardService.updateBoard(userId, pid, board);
     return {
       status: 200,
       message: message,
@@ -75,8 +87,8 @@ export class BoardController {
   @UseGuards(AccessTokenGuard)
   @Delete('/:pid')
   @ApiDeleteBoard()
-  async deleteBoard(@Request() req: { user: { userId: number } }, @Param('pid') pid: number) {
-    const message = await this.boardService.deleteBoard(req.user.userId, pid);
+  async deleteBoard(@User('userId') userId: number, @Param('pid') pid: number) {
+    const message = await this.boardService.deleteBoard(userId, pid);
 
     return {
       status: 200,
