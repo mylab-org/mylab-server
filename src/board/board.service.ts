@@ -5,8 +5,6 @@ import {
   GetCategoryResponseDto,
 } from './dto/response/get-category.response.dto.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
-import { plainToInstance } from 'class-transformer';
-import { CreateBoardResponseDto } from './dto/response/create-board.response.dto.js';
 
 @Injectable()
 export class BoardService {
@@ -51,18 +49,6 @@ export class BoardService {
     );
   }
 
-  // async getBoard(userId: number, categoryId: number) {
-  //   await this.chkUserAccessBoard(userId, categoryId);
-  //
-  //   return this.prisma.posts.findMany({
-  //     where: {
-  //       category_id: BigInt(categoryId),
-  //     },
-  //     orderBy: {
-  //       created_at: 'desc',
-  //     },
-  //   });
-  // }
   async getBoard(userId: number, categoryId: number, page: number = 1, pageSize: number = 20) {
     // 1. 게시판 접근 권한 확인
     await this.chkUserAccessBoard(userId, categoryId);
