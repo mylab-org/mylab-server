@@ -1,27 +1,37 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   CategoryItemDto,
   GetCategoryResponseDto,
 } from './dto/response/get-category.response.dto.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
+import { BOARD_ERROR } from './constants/board.error.js';
 
 @Injectable()
 export class BoardService {
   constructor(private prisma: PrismaService) {}
 
   async getCategory(userId: number, labId: number): Promise<GetCategoryResponseDto> {
-    // 연구실 인원인지 검사
-    const member = await this.prisma.lab_members.findFirst({
-      where: {
-        user_id: BigInt(userId),
-        lab_id: BigInt(labId),
-        left_at: null, //탈퇴 멤버는 제외
+    const labWithMember = await this.prisma.labs.findUnique({
+      where: { id: BigInt(labId) },
+      include: {
+        lab_members: {
+          where: {
+            user_id: BigInt(userId),
+            left_at: null,
+          },
+        },
       },
     });
 
-    if (!member) {
-      throw new ForbiddenException('요청하신 연구실의 권한이 없습니다.');
+    // [구분 1] 연구실 자체가 존재하지 않는 경우
+    if (!labWithMember) {
+      throw new NotFoundException(BOARD_ERROR.LAB_NOT_FOUND);
+    }
+
+    // [구분 2] 연구실은 존재하지만, 내가 활성화된 멤버가 아닌 경우
+    if (labWithMember.lab_members.length === 0) {
+      throw new ForbiddenException(BOARD_ERROR.USER_NOT_FOUND);
     }
 
     const category = await this.prisma.board_categories.findMany({
@@ -210,7 +220,7 @@ export class BoardService {
       },
     });
 
-    if (!category) throw new BadRequestException('존재하지 않는 게시판입니다.');
+    if (!category) throw new NotFoundException(BOARD_ERROR.CATEGORIES_NOT_FOUND);
 
     if (category.lab_id !== null) {
       const member = await this.prisma.lab_members.findFirst({
@@ -221,7 +231,7 @@ export class BoardService {
         },
       });
 
-      if (!member) throw new ForbiddenException('게시글 접근 권한이 없습니다.');
+      if (!member) throw new ForbiddenException(BOARD_ERROR.CATEGORIES_PERMISSION_DENIED);
     }
   }
 
@@ -231,8 +241,8 @@ export class BoardService {
         id: BigInt(pid),
       },
     });
-    if (!post) throw new BadRequestException('게시글이 존재하지 않습니다.');
+    if (!post) throw new NotFoundException(BOARD_ERROR.BOARD_NOT_FOUND);
     if (post.author_id !== BigInt(userId))
-      throw new ForbiddenException('게시글 접근 권한이 없습니다.');
+      throw new ForbiddenException(BOARD_ERROR.BOARD_PERMISSION_DENIED);
   }
 }
