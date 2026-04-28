@@ -87,7 +87,7 @@ export class BoardController {
   @UseGuards(AccessTokenGuard)
   @Delete('/:pid')
   @ApiDeleteBoard()
-  async deleteBoard(@User('userId') userId: number, @Param('pid') pid: number) {
+  async deleteBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
     const message = await this.boardService.deleteBoard(userId, pid);
 
     return {
@@ -95,16 +95,4 @@ export class BoardController {
       message: message,
     };
   }
-  //
-  // @Get('/comment/:pid')
-  // async getComment(@Req() req, @Param('id') id: string) {}
-  //
-  // @Post('/comment/:pid')
-  // async createComment(@Req() req, @Body() comment) {}
-  //
-  // @Patch('/comment/:cid')
-  // async updateComment(@Req() req, @Param('id') id: string) {}
-  //
-  // @Delete('/comment/:cid')
-  // async deleteComment(@Req() req, @Param('id') id: string) {}
 }
