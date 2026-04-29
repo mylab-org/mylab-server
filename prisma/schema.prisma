@@ -298,7 +298,8 @@ model comments {
   parent_comment comments?  @relation("comment_replies", fields: [parent_id], references: [id], onDelete: Cascade)
   replies        comments[] @relation("comment_replies")
 
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at DateTime? @db.Timestamptz(6)
 
   posts  posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
   author users @relation(fields: [author_id], references: [id])
