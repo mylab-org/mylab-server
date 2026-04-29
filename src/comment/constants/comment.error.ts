@@ -11,6 +11,7 @@ export const COMMENT_ERROR_CODES = {
   BOARD_PERMISSION_DENIED: 'C008',
   CATEGORIES_PERMISSION_DENIED: 'C009',
   LAB_NOT_FOUND: 'C010',
+  COMMENT_DELETE: 'C011',
 };
 
 export const COMMENT_ERROR = {
@@ -63,5 +64,10 @@ export const COMMENT_ERROR = {
     code: COMMENT_ERROR_CODES.CATEGORIES_PERMISSION_DENIED,
     message: '카테고리에 접근 권한이 없습니다.',
     status: HttpStatus.FORBIDDEN,
+  },
+  COMMENT_DELETE: {
+    code: COMMENT_ERROR_CODES.COMMENT_DELETE,
+    message: '삭제된 댓글입니다.',
+    status: HttpStatus.BAD_REQUEST,
   },
 };

@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { GetCommentsResponseDto } from '../dto/response/get-comment-response.dto.js';
+import { getCommentResponseDto } from '../dto/response/get-comment-response.dto.js';
 
 export const ApiGetComment = () => {
   return applyDecorators(
@@ -8,7 +8,7 @@ export const ApiGetComment = () => {
     ApiOperation({
       summary: '게시글 댓글 목록 조회',
     }),
-    ApiResponse({ status: 200, description: '성공', type: GetCommentsResponseDto }),
+    ApiResponse({ status: 200, description: '성공', type: getCommentResponseDto }),
   );
 };
 

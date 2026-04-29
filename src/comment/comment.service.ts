@@ -1,49 +1,62 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUpdateCommentRequestDto } from './dto/request/create-update-comment.request.dto.js';
 import { COMMENT_ERROR } from './constants/comment.error.js';
+import { Prisma } from '@prisma/client';
+
+export const commentInclude = {
+  author: { select: { name: true } },
+  replies: {
+    include: {
+      author: { select: { name: true } },
+    },
+  },
+} as const; // as const를 붙여야 Prisma가 타입을 정확히 추론합니다.
+
+export type CommentWithReplies = Prisma.commentsGetPayload<{ include: typeof commentInclude }>;
 
 @Injectable()
 export class CommentService {
   constructor(private prisma: PrismaService) {}
 
-  async getComment(userId: number, pid: number) {
-    // 1. 해당 게시글의 댓글만 조회
+  async getComment(userId: number, pid: number): Promise<CommentWithReplies[]> {
     const comments = await this.prisma.comments.findMany({
-      where: {
-        post_id: BigInt(pid),
-        parent_id: null, // 최상위 댓글만 먼저 조회 (대댓글은 include로 가져옴)
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            degree: true,
-          },
-        },
-        replies: {
-          // 대댓글(자식) 포함
-          include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                degree: true,
-              },
-            },
-          },
-          orderBy: {
-            created_at: 'asc', // 대댓글은 작성순
-          },
-        },
-      },
-      orderBy: {
-        created_at: 'asc', // 댓글도 작성순 (보통 댓글은 오래된 게 위로 감)
-      },
+      where: { post_id: BigInt(pid), parent_id: null },
+      include: commentInclude,
+      orderBy: { created_at: 'asc' },
     });
 
-    return comments;
+    // map을 통해 가공된 배열을 반환합니다.
+    return comments.map((comment) => this.maskDeletedComment(comment));
+  }
+
+  private maskDeletedComment(comment: CommentWithReplies): CommentWithReplies {
+    // 공통으로 처리할 대댓글 재귀 로직
+    const processedReplies =
+      comment.replies?.map((reply) => this.maskDeletedComment(reply as CommentWithReplies)) || [];
+
+    if (comment.deleted_at !== null) {
+      // 삭제된 댓글일 경우: 새로운 객체를 만들어서 반환 (타입 충돌 회피)
+      return {
+        ...comment,
+        content: '삭제된 댓글입니다.',
+        author: {
+          name: '',
+        },
+        replies: processedReplies,
+      };
+    }
+
+    // 삭제되지 않은 댓글일 경우: 원본 데이터 유지하되 가공된 대댓글만 교체
+    return {
+      ...comment,
+      replies: processedReplies,
+    };
   }
 
   async createComment(userId: number, pid: number, dto: CreateUpdateCommentRequestDto) {
@@ -75,7 +88,10 @@ export class CommentService {
       where: { id: BigInt(cid) },
     });
 
+    console.log(comment);
+
     if (!comment) throw new NotFoundException(COMMENT_ERROR.COMMENT_NOT_FOUND);
+    if (comment.deleted_at) throw new BadRequestException(COMMENT_ERROR.COMMENT_DELETE);
 
     // 작성자 체크
     if (comment.author_id !== BigInt(userId)) {
@@ -96,15 +112,16 @@ export class CommentService {
       where: { id: BigInt(cid) },
     });
 
-    if (!comment) throw new NotFoundException('댓글이 존재하지 않습니다.');
-
+    if (!comment) throw new NotFoundException(COMMENT_ERROR.COMMENT_NOT_FOUND);
+    if (comment.deleted_at) throw new BadRequestException(COMMENT_ERROR.COMMENT_DELETE);
     if (comment.author_id !== BigInt(userId)) {
       throw new ForbiddenException(COMMENT_ERROR.BOARD_PERMISSION_DENIED);
     }
 
     // 2. 삭제 실행
-    await this.prisma.comments.delete({
+    await this.prisma.comments.update({
       where: { id: BigInt(cid) },
+      data: { deleted_at: new Date() }, // 현재 시간 저장
     });
 
     return '댓글이 삭제되었습니다.';

@@ -1,9 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
-export class CommentDto {
-  @ApiProperty({ example: '10' })
+export class AuthorDto {
+  @ApiProperty({ example: '테스트' })
   @Expose()
+  name: string | null;
+}
+
+export class getCommentResponseDto {
+  @ApiProperty({ example: '1' })
+  @Expose()
+  // @Transform(({ value }) => value.toString()) // BigInt를 문자열로 변환
   id: string;
 
   @ApiProperty({ example: '댓글 내용입니다.' })
@@ -14,20 +21,14 @@ export class CommentDto {
   @Expose()
   created_at: Date;
 
-  @ApiProperty({ example: { name: '오진영' } })
+  // 삭제된 경우 null이 될 수 있으므로 처리
+  @ApiProperty({ type: AuthorDto, nullable: true })
   @Expose()
-  author: { name: string };
+  @Type(() => AuthorDto)
+  author: AuthorDto | null;
 
-  @ApiProperty({ type: [CommentDto], description: '대댓글 배열', required: false })
+  @ApiProperty({ type: [getCommentResponseDto], description: '대댓글 배열' })
   @Expose()
-  @Type(() => CommentDto)
-  replies?: CommentDto[];
-}
-
-export class GetCommentsResponseDto {
-  // 댓글 데이터 추가
-  @ApiProperty({ type: [CommentDto] })
-  @Expose()
-  @Type(() => CommentDto)
-  comments: CommentDto[];
+  @Type(() => getCommentResponseDto)
+  replies: getCommentResponseDto[];
 }

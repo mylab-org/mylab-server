@@ -19,6 +19,8 @@ import {
 } from './docs/comment.swagger.js';
 import { CreateUpdateCommentRequestDto } from './dto/request/create-update-comment.request.dto.js';
 import { User } from '../common/decoraters/user.decorator.js';
+import { plainToInstance } from 'class-transformer';
+import { getCommentResponseDto } from './dto/response/get-comment-response.dto.js';
 
 @Controller('comment')
 export class CommentController {
@@ -28,7 +30,10 @@ export class CommentController {
   @Get('/:pid')
   @ApiGetComment()
   async getComment(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
-    return this.commentService.getComment(userId, pid);
+    const comments = await this.commentService.getComment(userId, pid);
+
+    // plainToInstance를 사용하여 class-transformer 데코레이터 적용
+    return plainToInstance(getCommentResponseDto, comments, { excludeExtraneousValues: true });
   }
 
   @UseGuards(AccessTokenGuard)
