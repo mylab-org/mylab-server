@@ -15,6 +15,7 @@ export const commentInclude = {
     include: {
       author: { select: { name: true } },
     },
+    orderBy: { created_at: 'asc' },
   },
 } as const; // as const를 붙여야 Prisma가 타입을 정확히 추론합니다.
 
@@ -25,6 +26,16 @@ export class CommentService {
   constructor(private prisma: PrismaService) {}
 
   async getComment(userId: number, pid: number): Promise<CommentWithReplies[]> {
+    const post = await this.prisma.posts.findUnique({
+      where: { id: BigInt(pid) },
+      select: { category_id: true }, // 게시글의 카테고리 ID 추출
+    });
+
+    if (!post) throw new NotFoundException(COMMENT_ERROR.BOARD_NOT_FOUND);
+
+    // 2. 접근 권한 체크 (기존에 만드신 함수 활용)
+    await this.chkUserAccessComment(userId, Number(post.category_id));
+
     const comments = await this.prisma.comments.findMany({
       where: { post_id: BigInt(pid), parent_id: null },
       include: commentInclude,
@@ -63,6 +74,8 @@ export class CommentService {
     // 1. 게시글 존재 확인 (선택 사항이지만 안전함)
     const post = await this.prisma.posts.findUnique({ where: { id: BigInt(pid) } });
     if (!post) throw new NotFoundException(COMMENT_ERROR.BOARD_NOT_FOUND);
+
+    await this.chkUserAccessComment(userId, Number(post.category_id));
 
     // 2. 만약 대댓글(parentId가 있음)이라면 부모 댓글이 존재하는지 확인
     if (dto.parentId) {
