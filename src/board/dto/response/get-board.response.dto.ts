@@ -2,30 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import { BoardAuthorDto, BoardLabDto } from './create-board.response.dto.js';
 
-// [0] 댓글/대댓글을 위한 DTO
-export class CommentDto {
-  @ApiProperty({ example: '10' })
-  @Expose()
-  id: string;
-
-  @ApiProperty({ example: '댓글 내용입니다.' })
-  @Expose()
-  content: string;
-
-  @ApiProperty({ example: '2026-04-25T03:00:00Z' })
-  @Expose()
-  created_at: Date;
-
-  @ApiProperty({ example: { name: '오진영' } })
-  @Expose()
-  author: { name: string };
-
-  @ApiProperty({ type: [CommentDto], description: '대댓글 배열', required: false })
-  @Expose()
-  @Type(() => CommentDto)
-  replies?: CommentDto[];
-}
-
 // [1] 개별 게시글 DTO
 export class PostItemDto {
   @ApiProperty({ example: '1' })
@@ -72,12 +48,6 @@ export class PostItemDto {
     return source._count?.comments ?? 0;
   })
   commentCount: number;
-
-  // 댓글 데이터 추가
-  @ApiProperty({ type: [CommentDto] })
-  @Expose()
-  @Type(() => CommentDto)
-  comments: CommentDto[];
 }
 
 // [2] 페이지 메타 정보 DTO

@@ -86,19 +86,6 @@ export class BoardService {
               },
             },
           },
-          comments: {
-            where: { parent_id: null }, // 최상위 댓글만 먼저 가져옴
-            include: {
-              author: { select: { name: true } },
-              replies: {
-                // 대댓글 포함
-                include: {
-                  author: { select: { name: true } },
-                },
-              },
-            },
-            orderBy: { created_at: 'asc' }, // 댓글은 오래된 순서대로
-          },
           _count: {
             select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
           },
