@@ -6,9 +6,11 @@ import { UserModule } from './user/user.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { LabModule } from './lab/lab.module.js';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware.js';
+import { BoardModule } from './board/board.module.js';
+import { CommentModule } from './comment/comment.module.js';
 
 @Module({
-  imports: [PrismaModule, UserModule, AuthModule, LabModule],
+  imports: [PrismaModule, UserModule, AuthModule, LabModule, BoardModule, CommentModule],
   controllers: [AppController],
   providers: [AppService],
 })
