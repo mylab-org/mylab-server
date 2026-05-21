@@ -12,6 +12,10 @@ export const LAB_ERROR_CODES = {
   CODE_NOT_FOUND: 'L008',
   CODE_DEACTIVATED: 'L009',
   CODE_EXPIRED: 'L010',
+
+  NO_PERMISSION_TO_CHANGE_ROLE: 'L101',
+  MAX_LAB_LEADER_EXCEEDED: 'L102',
+  MAX_SUB_LEADER_EXCEEDED: 'L103',
 } as const;
 
 export type LabErrorCode = (typeof LAB_ERROR_CODES)[keyof typeof LAB_ERROR_CODES];
@@ -58,7 +62,7 @@ export const LAB_ERRORS: Record<string, ErrorInfo> = {
     status: HttpStatus.NOT_FOUND,
   },
   CODE_DEACTIVATED: {
-    code: LAB_ERROR_CODES.CODE_EXPIRED,
+    code: LAB_ERROR_CODES.CODE_DEACTIVATED,
     message: '비활성화된 초대 코드.',
     status: HttpStatus.GONE,
   },
@@ -66,5 +70,25 @@ export const LAB_ERRORS: Record<string, ErrorInfo> = {
     code: LAB_ERROR_CODES.CODE_EXPIRED,
     message: '만료된 초대 코드.',
     status: HttpStatus.GONE,
+  },
+};
+
+export const CHANGE_ROLE_ERROR: Record<string, ErrorInfo> = {
+  NO_PERMISSION: {
+    code: 'L101',
+    message: '권한이 없습니다.',
+    status: HttpStatus.FORBIDDEN,
+  },
+
+  MAX_LAB_LEADER_EXCEEDED: {
+    code: 'L102',
+    message: '랩장은 1명까지 가능합니다.',
+    status: HttpStatus.CONFLICT,
+  },
+
+  MAX_SUB_LEADER_EXCEEDED: {
+    code: 'L103',
+    message: '부랩장은 2명까지 가능합니다.',
+    status: HttpStatus.CONFLICT,
   },
 };
