@@ -10,6 +10,7 @@ import {
   HttpStatus,
   HttpCode,
   Get,
+  Patch,
 } from '@nestjs/common';
 import { LabService } from './lab.service.js';
 import { CreateLabRequestDto } from './dto/request/create-lab.request.dto.js';
@@ -25,11 +26,13 @@ import {
   ApiJoinLab,
   ApiRevokeInviteCode,
   ApiGetMembers,
+  ApiChangeRole,
 } from './docs/lab.swagger.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
+import { ChangeRoleRequestDto } from './dto/request/change-role.request.dto.js';
 
 @ApiTags('Labs')
 @Controller('labs')
@@ -89,5 +92,17 @@ export class LabController {
   @ApiGetMembers()
   async getMembers(@Param('labId', ParseIntPipe) labId: number): Promise<GetMembersResponseDto[]> {
     return this.labService.getMembers(labId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Patch(':labId/members/:userId/change-role')
+  @ApiChangeRole()
+  async changeRole(
+    @Param('labId', ParseIntPipe) labId: number,
+    @Param('userId', ParseIntPipe) targetUserId: number,
+    @Request() req: { user: { userId: number } },
+    @Body() dto: ChangeRoleRequestDto,
+  ): Promise<void> {
+    return this.labService.changeRole(labId, targetUserId, req.user.userId, dto);
   }
 }

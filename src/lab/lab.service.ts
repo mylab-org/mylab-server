@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommonException } from '../common/exceptions/common.exception.js';
-import { LAB_ERRORS } from './constants/lab.error.js';
+import { CHANGE_ROLE_ERROR, LAB_ERRORS } from './constants/lab.error.js';
 import { CreateLabRequestDto } from './dto/request/create-lab.request.dto.js';
 import { CreateInviteCodeRequestDto } from './dto/request/create-invite-code.request.dto.js';
 import { CreateLabResponseDto } from './dto/response/create-lab.response.dto.js';
 import { InviteCodeResponseDto } from './dto/response/invite-code.response.dto.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { randomUUID } from 'node:crypto';
-import { invite_codes, Prisma } from '@prisma/client';
+import { invite_codes, Prisma, Role, Degree } from '@prisma/client';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
+import { ChangeRoleRequestDto } from './dto/request/change-role.request.dto.js';
+import { USER_ERROR } from '../user/constants/user.error.js';
 
 type PrismaClient = PrismaService | Prisma.TransactionClient;
 
@@ -38,7 +40,7 @@ export class LabService {
         data: {
           user_id: professorId,
           lab_id: lab.id,
-          role: 'PROFESSOR',
+          role: Role.PROFESSOR,
         },
       });
 
@@ -223,6 +225,66 @@ export class LabService {
     }));
   }
 
+  async changeRole(
+    labId: number,
+    targetUserId: number,
+    userId: number,
+    dto: ChangeRoleRequestDto,
+  ): Promise<void> {
+    const user = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(userId), lab_id: BigInt(labId) },
+    });
+    if (!user) throw new CommonException(USER_ERROR.NOT_FOUND);
+    if (user.role !== Role.PROFESSOR && user.role !== Role.LAB_LEADER)
+      throw new CommonException(CHANGE_ROLE_ERROR.NO_PERMISSION);
+
+    const targetUser = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(targetUserId), lab_id: user.lab_id },
+    });
+    if (!targetUser) throw new CommonException(USER_ERROR.NOT_FOUND);
+    if (targetUser.role === dto.role) return;
+    if (targetUser.role === Role.PROFESSOR)
+      throw new CommonException(CHANGE_ROLE_ERROR.NO_PERMISSION);
+
+    const labLeaderCount = await this.prisma.lab_members.count({
+      where: { lab_id: BigInt(labId), role: Role.LAB_LEADER },
+    });
+
+    const subLeaderCount = await this.prisma.lab_members.count({
+      where: { lab_id: BigInt(labId), role: Role.SUB_LEADER },
+    });
+
+    switch (user.role) {
+      case Role.PROFESSOR:
+        if (dto.role === Role.LAB_LEADER) {
+          if (labLeaderCount > 0)
+            throw new CommonException(CHANGE_ROLE_ERROR.MAX_LAB_LEADER_EXCEEDED);
+        } else if (dto.role === Role.SUB_LEADER) {
+          if (subLeaderCount > 1)
+            throw new CommonException(CHANGE_ROLE_ERROR.MAX_SUB_LEADER_EXCEEDED);
+        }
+
+        break;
+      case Role.LAB_LEADER:
+        if (targetUser.role === Role.LAB_LEADER)
+          throw new CommonException(CHANGE_ROLE_ERROR.NO_PERMISSION);
+
+        if (dto.role === Role.LAB_LEADER)
+          throw new CommonException(CHANGE_ROLE_ERROR.NO_PERMISSION);
+        else if (dto.role === Role.SUB_LEADER)
+          if (subLeaderCount > 1)
+            throw new CommonException(CHANGE_ROLE_ERROR.MAX_SUB_LEADER_EXCEEDED);
+
+        break;
+    }
+
+    await this.prisma.lab_members.update({
+      where: {
+        user_id_lab_id: { user_id: BigInt(targetUserId), lab_id: BigInt(labId) },
+      },
+      data: { role: dto.role },
+    });
+  }
   /* ##### 내장 함수 ##### */
 
   // 교수 인증 확인
@@ -239,7 +301,7 @@ export class LabService {
       throw new CommonException(LAB_ERRORS.NOT_VERIFIED_PROFESSOR);
     }
 
-    if (user.degree !== 'PROFESSOR') {
+    if (user.degree !== Degree.PROFESSOR) {
       throw new CommonException(LAB_ERRORS.PERMISSION_DENIED);
     }
   }
@@ -269,7 +331,7 @@ export class LabService {
       throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
     }
 
-    if (chkMember.role !== 'PROFESSOR' && chkMember.role !== 'LAB_LEADER') {
+    if (chkMember.role !== Role.PROFESSOR && chkMember.role !== Role.LAB_LEADER) {
       throw new CommonException(LAB_ERRORS.PERMISSION_DENIED);
     }
   }
