@@ -295,7 +295,7 @@ export class LabService {
     }
   }
 
-  // 초대 코드 DTO 형식 변환
+  // 초대 코드 dto 형식 변환
   private toInviteCodeResponse(inviteCode: invite_codes): InviteCodeResponseDto {
     return {
       id: Number(inviteCode.id),
