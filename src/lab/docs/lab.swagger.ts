@@ -7,6 +7,7 @@ import { JoinLabResponseDto } from '../dto/response/join-lab.response.dto.js';
 import { CreateInviteCodeRequestDto } from '../dto/request/create-invite-code.request.dto.js';
 import { JoinLabRequestDto } from '../dto/request/join-lab.request.dto.js';
 import { GetMembersResponseDto } from '../dto/response/get-members.dto.js';
+import { ChangeRoleRequestDto } from '../dto/request/change-role.request.dto.js';
 
 export function ApiCreateLab() {
   return applyDecorators(
@@ -105,5 +106,24 @@ export function ApiGetMembers() {
     ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
     ApiResponse({ status: 200, description: '조회 성공', type: [GetMembersResponseDto] }),
     ApiResponse({ status: 404, description: '존재하지 않는 연구실' }),
+  );
+}
+
+export function ApiChangeRole() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '멤버 역할 변경',
+      description:
+        '교수는 랩장/부랩장 임명 및 해임 가능. 랩장은 부랩장 임명 및 해임 가능. 랩장 1명, 부랩장 2명 제한.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiParam({ name: 'userId', description: '역할을 변경할 멤버 ID', type: Number }),
+    ApiBody({ type: ChangeRoleRequestDto }),
+    ApiResponse({ status: 200, description: '역할 변경 성공' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '권한 없음 (교수/랩장만 가능)' }),
+    ApiResponse({ status: 404, description: '존재하지 않는 사용자' }),
+    ApiResponse({ status: 409, description: '랩장 1명 초과 / 부랩장 2명 초과' }),
   );
 }
