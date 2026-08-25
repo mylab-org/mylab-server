@@ -1,4 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
+import { ErrorInfo } from '../../common/exceptions/common.exception.js';
 
 export const LAB_ERROR_CODES = {
   USER_NOT_FOUND: 'L001',
