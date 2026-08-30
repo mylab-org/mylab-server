@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import { BoardAuthorDto, BoardLabDto } from './create-board.response.dto.js';
 
-// [1] 개별 게시글 DTO
+// [1] 개별 게시글 dto
 export class PostItemDto {
   @ApiProperty({ example: '1' })
   @Expose()
@@ -50,7 +50,7 @@ export class PostItemDto {
   commentCount: number;
 }
 
-// [2] 페이지 메타 정보 DTO
+// [2] 페이지 메타 정보 dto
 export class PaginationMetaDto {
   @ApiProperty({ example: 1 })
   @Expose()
@@ -69,7 +69,7 @@ export class PaginationMetaDto {
   totalPages: number;
 }
 
-// [3] 최종 전체 응답 DTO
+// [3] 최종 전체 응답 dto
 export class GetBoardResponseDto {
   @ApiProperty({ type: [PostItemDto] })
   @Expose()

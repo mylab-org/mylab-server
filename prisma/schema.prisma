@@ -159,7 +159,7 @@ model papers {
   created_at            DateTime        @default(now()) @db.Timestamptz(6)
   paper_members         paper_members[]
   lab_members           lab_members?    @relation(fields: [lead_author_member_id, lab_id], references: [id, lab_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_paper_lead_author_lab")
-  schedules             schedules       @relation(fields: [schedule_id, lab_id], references: [id, lab_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_paper_schedule_lab")
+  schedules             schedules?      @relation(fields: [schedule_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_paper_schedule")
 
   @@unique([id, lab_id], map: "uq_papers_id_lab")
   @@index([schedule_id], map: "idx_papers_schedule_id")
@@ -175,21 +175,35 @@ model schedule_participants {
   @@id([schedule_id, lab_member_id])
 }
 
+model schedule_exceptions {
+  id            BigInt    @id @default(autoincrement())
+  schedule_id   BigInt
+  lab_id        BigInt
+  occurrence_at DateTime  @db.Timestamptz(6)
+  cancelled_by  BigInt
+  cancelled_at  DateTime  @default(now()) @db.Timestamptz(6)
+  schedules     schedules @relation(fields: [schedule_id, lab_id], references: [id, lab_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_se_schedule_lab")
+  users         users     @relation(fields: [cancelled_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([schedule_id, occurrence_at], map: "uq_schedule_exceptions_schedule_occurrence")
+  @@index([lab_id, occurrence_at], map: "idx_schedule_exception_lab_occurrence")
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model schedules {
   id                                BigInt                  @id @default(autoincrement())
   lab_id                            BigInt
-  type                              String
+  schedule_type                     ScheduleType
+  recurrence_type                   RecurrenceType          @default(NONE)
   title                             String
   start_at                          DateTime                @db.Timestamptz(6)
   end_at                            DateTime?               @db.Timestamptz(6)
   location                          String?
   memo                              String?
-  is_all_members                    Boolean                 @default(true)
   created_by                        BigInt
   updated_by                        BigInt?
   created_at                        DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at                        DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                        DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
   submission_deadline               DateTime?               @db.Timestamptz(6)
   conference_id                     BigInt?
   papers                            papers[]
@@ -198,6 +212,7 @@ model schedules {
   users_schedules_created_byTousers users                   @relation("schedules_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   labs                              labs                    @relation(fields: [lab_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_schedules_updated_byTousers users?                  @relation("schedules_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  scheduleExceptions                schedule_exceptions[]
 
   @@unique([id, lab_id], map: "uq_schedules_id_lab")
   @@index([lab_id, created_at], map: "idx_schedules_lab_id_created_at")
@@ -206,14 +221,14 @@ model schedules {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model users {
-  id                                    BigInt          @id @default(autoincrement())
-  email                                 String          @unique
+  id                                    BigInt                @id @default(autoincrement())
+  email                                 String                @unique
   password                              String
   name                                  String
   degree                                Degree
-  is_email_verified                     Boolean         @default(false)
-  created_at                            DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at                            DateTime        @default(now()) @db.Timestamptz(6)
+  is_email_verified                     Boolean               @default(false)
+  created_at                            DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at                            DateTime              @default(now()) @db.Timestamptz(6)
   refresh_token                         String?
   auth_tokens                           auth_tokens[]
   device_tokens                         device_tokens[]
@@ -222,10 +237,11 @@ model users {
   labs                                  labs[]
   meeting_skips                         meeting_skips[]
   notifications                         notifications[]
-  schedules_schedules_created_byTousers schedules[]     @relation("schedules_created_byTousers")
-  schedules_schedules_updated_byTousers schedules[]     @relation("schedules_updated_byTousers")
+  schedules_schedules_created_byTousers schedules[]           @relation("schedules_created_byTousers")
+  schedules_schedules_updated_byTousers schedules[]           @relation("schedules_updated_byTousers")
   post                                  posts[]
   comments                              comments[]
+  scheduleExceptions                    schedule_exceptions[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -322,4 +338,17 @@ enum Role {
   LAB_LEADER
   SUB_LEADER
   MEMBER
+}
+
+enum ScheduleType {
+  CONFERENCE
+  MEETING
+  LAB_DINNER
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
 }

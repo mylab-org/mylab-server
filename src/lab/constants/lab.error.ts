@@ -18,9 +18,7 @@ export const LAB_ERROR_CODES = {
   MAX_SUB_LEADER_EXCEEDED: 'L103',
 } as const;
 
-export type LabErrorCode = (typeof LAB_ERROR_CODES)[keyof typeof LAB_ERROR_CODES];
-
-export const LAB_ERRORS: Record<string, ErrorInfo> = {
+export const LAB_ERRORS = {
   USER_NOT_FOUND: {
     code: LAB_ERROR_CODES.USER_NOT_FOUND,
     message: '존재하지 않는 사용자.',

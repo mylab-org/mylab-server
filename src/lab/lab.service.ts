@@ -297,7 +297,7 @@ export class LabService {
       throw new CommonException(LAB_ERRORS.USER_NOT_FOUND);
     }
 
-    if (user.is_email_verified === false) {
+    if (!user.is_email_verified) {
       throw new CommonException(LAB_ERRORS.NOT_VERIFIED_PROFESSOR);
     }
 
@@ -357,7 +357,7 @@ export class LabService {
     }
   }
 
-  // 초대 코드 DTO 형식 변환
+  // 초대 코드 dto 형식 변환
   private toInviteCodeResponse(inviteCode: invite_codes): InviteCodeResponseDto {
     return {
       id: Number(inviteCode.id),
