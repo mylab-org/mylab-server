@@ -6,6 +6,8 @@ import { CreatePaperRequestDto } from './dto/request/create-paper.request.dto.js
 import { UpdatePaperStatusRequestDto } from './dto/request/update-paper-status.request.dto.js';
 import { AddPaperMemberRequestDto } from './dto/request/add-paper-member.request.dto.js';
 import { PaperResponseDto } from './dto/response/paper.response.dto.js';
+import { PAPER_STATUS, PAPER_STATUS_LABEL, DEFAULT_PAPER_STATUS } from './constants/paper-status.constant.js';
+import type { PaperStatus } from './constants/paper-status.constant.js';
 
 const paperInclude = {
   lab_members: {
@@ -16,6 +18,16 @@ const paperInclude = {
       lab_members: {
         include: { users: { select: { id: true, name: true, degree: true } } },
       },
+    },
+  },
+  schedules: {
+    select: {
+      id: true,
+      title: true,
+      start_at: true,
+      end_at: true,
+      location: true,
+      submission_deadline: true,
     },
   },
 } satisfies Prisma.papersInclude;
@@ -52,6 +64,8 @@ export class PaperService {
           lab_id: BigInt(labId),
           schedule_id: BigInt(dto.scheduleId),
           lead_author_member_id: leadAuthorMemberId,
+          // 스키마 기본값('IDEA')은 기획의 5단계와 맞지 않아 생성 시 첫 단계를 명시합니다.
+          status: DEFAULT_PAPER_STATUS,
         },
       });
 
@@ -142,14 +156,22 @@ export class PaperService {
     const alreadyMember = paper.paper_members.some((pm) => pm.lab_member_id === targetMemberId);
     if (alreadyMember) throw new BadRequestException(PAPER_ERROR.ALREADY_PAPER_MEMBER);
 
-    await this.prisma.paper_members.create({
-      data: {
-        paper_id: BigInt(paperId),
-        lab_id: BigInt(labId),
-        lab_member_id: targetMemberId,
-        role: dto.role ?? 'CO_AUTHOR',
-      },
-    });
+    try {
+      await this.prisma.paper_members.create({
+        data: {
+          paper_id: BigInt(paperId),
+          lab_id: BigInt(labId),
+          lab_member_id: targetMemberId,
+          role: dto.role ?? 'CO_AUTHOR',
+        },
+      });
+    } catch (e) {
+      // 위 중복 검사와 생성 사이에 동일 요청이 들어온 경우(복합키 충돌)도 같은 에러로 응답합니다.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new BadRequestException(PAPER_ERROR.ALREADY_PAPER_MEMBER);
+      }
+      throw e;
+    }
 
     return this.getPaper(userId, labId, paperId);
   }
@@ -245,6 +267,20 @@ export class PaperService {
     }
   }
 
+  // 마감일까지 남은 일수 계산 (D-24의 24). 마감일이 없으면 null, 이미 지났으면 음수
+  private calculateDDay(deadline: Date | null): number | null {
+    if (!deadline) return null;
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfDeadline = new Date(deadline);
+    startOfDeadline.setHours(0, 0, 0, 0);
+
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    return Math.round((startOfDeadline.getTime() - startOfToday.getTime()) / MS_PER_DAY);
+  }
+
   // Prisma 응답 형태를 API 응답 DTO 형태로 변환
   private toPaperResponse(paper: PaperWithRelations): PaperResponseDto {
     const leadAuthor = paper.lab_members?.users
@@ -259,14 +295,32 @@ export class PaperService {
       isLeadAuthor: pm.lab_member_id === paper.lead_author_member_id,
     }));
 
+    const schedule = paper.schedules
+      ? {
+          id: Number(paper.schedules.id),
+          title: paper.schedules.title,
+          startAt: paper.schedules.start_at,
+          endAt: paper.schedules.end_at,
+          location: paper.schedules.location,
+          submissionDeadline: paper.schedules.submission_deadline,
+          dDay: this.calculateDDay(paper.schedules.submission_deadline),
+        }
+      : null;
+
+    // DB의 status 문자열이 정의된 단계 목록에 없으면 순번은 0으로 둡니다.
+    const statusIndex = PAPER_STATUS.indexOf(paper.status as PaperStatus);
+
     return {
       id: Number(paper.id),
       labId: Number(paper.lab_id),
-      scheduleId: Number(paper.schedule_id),
       title: paper.title,
       status: paper.status,
+      statusLabel: PAPER_STATUS_LABEL[paper.status as PaperStatus] ?? paper.status,
+      statusStep: statusIndex + 1,
+      totalSteps: PAPER_STATUS.length,
       leadAuthor,
       members,
+      schedule,
       createdAt: paper.created_at,
     };
   }
