@@ -4,6 +4,7 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import { User } from '../common/decoraters/user.decorator.js';
 import { CreatePaperRequestDto } from './dto/request/create-paper.request.dto.js';
 import { UpdatePaperStatusRequestDto } from './dto/request/update-paper-status.request.dto.js';
+import { UpdatePaperRequestDto } from './dto/request/update-paper.request.dto.js';
 import { AddPaperMemberRequestDto } from './dto/request/add-paper-member.request.dto.js';
 import {
   ApiAddPaperMember,
@@ -12,6 +13,7 @@ import {
   ApiGetPaper,
   ApiListPapers,
   ApiRemovePaperMember,
+  ApiUpdatePaper,
   ApiUpdatePaperStatus,
 } from './docs/paper.swagger.js';
 
@@ -46,6 +48,18 @@ export class PaperController {
     @Param('paperId', ParseIntPipe) paperId: number,
   ) {
     return this.paperService.getPaper(userId, labId, paperId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Patch(':paperId')
+  @ApiUpdatePaper()
+  async updatePaper(
+    @User('userId') userId: number,
+    @Param('labId', ParseIntPipe) labId: number,
+    @Param('paperId', ParseIntPipe) paperId: number,
+    @Body() dto: UpdatePaperRequestDto,
+  ) {
+    return this.paperService.updatePaper(userId, labId, paperId, dto);
   }
 
   @UseGuards(AccessTokenGuard)

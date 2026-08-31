@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@ne
 import { PaperResponseDto } from '../dto/response/paper.response.dto.js';
 import { CreatePaperRequestDto } from '../dto/request/create-paper.request.dto.js';
 import { UpdatePaperStatusRequestDto } from '../dto/request/update-paper-status.request.dto.js';
+import { UpdatePaperRequestDto } from '../dto/request/update-paper.request.dto.js';
 import { AddPaperMemberRequestDto } from '../dto/request/add-paper-member.request.dto.js';
 
 const labIdParam = () => ApiParam({ name: 'labId', description: '연구실 ID', type: Number });
@@ -41,6 +42,22 @@ export const ApiGetPaper = () =>
     ApiResponse({ status: 200, description: '조회 성공', type: PaperResponseDto }),
     ApiResponse({ status: 403, description: '연구실 멤버가 아님' }),
     ApiResponse({ status: 404, description: '존재하지 않는 논문' }),
+  );
+
+export const ApiUpdatePaper = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '논문 정보 수정',
+      description:
+        '제목, 주저자, 연결된 일정을 수정. 주저자 또는 교수/랩장만 가능. 주저자를 바꾸면 기존 주저자는 공동저자가 되고, 새 주저자가 참여자에 없으면 자동 추가됨.',
+    }),
+    labIdParam(),
+    paperIdParam(),
+    ApiBody({ type: UpdatePaperRequestDto }),
+    ApiResponse({ status: 200, description: '수정 성공', type: PaperResponseDto }),
+    ApiResponse({ status: 403, description: '권한 없음' }),
+    ApiResponse({ status: 404, description: '존재하지 않는 논문 / 일정 / 멤버' }),
   );
 
 export const ApiUpdatePaperStatus = () =>

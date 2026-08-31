@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { PAPER_ERROR } from './constants/paper.error.js';
 import { CreatePaperRequestDto } from './dto/request/create-paper.request.dto.js';
 import { UpdatePaperStatusRequestDto } from './dto/request/update-paper-status.request.dto.js';
+import { UpdatePaperRequestDto } from './dto/request/update-paper.request.dto.js';
 import { AddPaperMemberRequestDto } from './dto/request/add-paper-member.request.dto.js';
 import { PaperResponseDto } from './dto/response/paper.response.dto.js';
 import { PAPER_STATUS, PAPER_STATUS_LABEL, DEFAULT_PAPER_STATUS } from './constants/paper-status.constant.js';
@@ -108,6 +109,71 @@ export class PaperService {
     await this.chkLabMember(userId, labId);
     const paper = await this.chkPaperExists(paperId, labId);
     return this.toPaperResponse(paper);
+  }
+
+  async updatePaper(
+    userId: number,
+    labId: number,
+    paperId: number,
+    dto: UpdatePaperRequestDto,
+  ): Promise<PaperResponseDto> {
+    const requester = await this.chkLabMember(userId, labId);
+    const paper = await this.chkPaperExists(paperId, labId);
+    this.chkManagePermission(requester, paper);
+
+    if (dto.scheduleId !== undefined) {
+      await this.chkScheduleInLab(dto.scheduleId, labId);
+    }
+
+    // 주저자를 바꾸는 경우, 해당 유저가 연구실 멤버인지 확인합니다.
+    let newLeadAuthorMemberId: bigint | undefined;
+    if (dto.leadAuthorUserId !== undefined) {
+      const memberIdMap = await this.resolveLabMemberIds([dto.leadAuthorUserId], labId);
+      newLeadAuthorMemberId = memberIdMap.get(dto.leadAuthorUserId)!;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.papers.update({
+        where: { id_lab_id: { id: BigInt(paperId), lab_id: BigInt(labId) } },
+        data: {
+          title: dto.title,
+          schedule_id: dto.scheduleId !== undefined ? BigInt(dto.scheduleId) : undefined,
+          lead_author_member_id: newLeadAuthorMemberId,
+        },
+      });
+
+      if (newLeadAuthorMemberId === undefined) return;
+
+      // 기존 주저자는 공동저자로 내리고, 새 주저자는 참여자에 없으면 추가합니다.
+      if (paper.lead_author_member_id && paper.lead_author_member_id !== newLeadAuthorMemberId) {
+        await tx.paper_members.updateMany({
+          where: { paper_id: BigInt(paperId), lab_member_id: paper.lead_author_member_id },
+          data: { role: 'CO_AUTHOR' },
+        });
+      }
+
+      const isAlreadyMember = paper.paper_members.some(
+        (pm) => pm.lab_member_id === newLeadAuthorMemberId,
+      );
+
+      if (isAlreadyMember) {
+        await tx.paper_members.updateMany({
+          where: { paper_id: BigInt(paperId), lab_member_id: newLeadAuthorMemberId },
+          data: { role: 'LEAD_AUTHOR' },
+        });
+      } else {
+        await tx.paper_members.create({
+          data: {
+            paper_id: BigInt(paperId),
+            lab_id: BigInt(labId),
+            lab_member_id: newLeadAuthorMemberId,
+            role: 'LEAD_AUTHOR',
+          },
+        });
+      }
+    });
+
+    return this.getPaper(userId, labId, paperId);
   }
 
   async updateStatus(
