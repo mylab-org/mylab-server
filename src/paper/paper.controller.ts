@@ -5,6 +5,7 @@ import { User } from '../common/decoraters/user.decorator.js';
 import { CreatePaperRequestDto } from './dto/request/create-paper.request.dto.js';
 import { UpdatePaperStatusRequestDto } from './dto/request/update-paper-status.request.dto.js';
 import { UpdatePaperRequestDto } from './dto/request/update-paper.request.dto.js';
+import { UpdatePaperMemberRequestDto } from './dto/request/update-paper-member.request.dto.js';
 import { AddPaperMemberRequestDto } from './dto/request/add-paper-member.request.dto.js';
 import {
   ApiAddPaperMember,
@@ -14,6 +15,7 @@ import {
   ApiListPapers,
   ApiRemovePaperMember,
   ApiUpdatePaper,
+  ApiUpdatePaperMember,
   ApiUpdatePaperStatus,
 } from './docs/paper.swagger.js';
 
@@ -95,6 +97,19 @@ export class PaperController {
     @Body() dto: AddPaperMemberRequestDto,
   ) {
     return this.paperService.addMember(userId, labId, paperId, dto);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Patch(':paperId/members/:memberUserId')
+  @ApiUpdatePaperMember()
+  async updateMemberRole(
+    @User('userId') userId: number,
+    @Param('labId', ParseIntPipe) labId: number,
+    @Param('paperId', ParseIntPipe) paperId: number,
+    @Param('memberUserId', ParseIntPipe) memberUserId: number,
+    @Body() dto: UpdatePaperMemberRequestDto,
+  ) {
+    return this.paperService.updateMemberRole(userId, labId, paperId, memberUserId, dto);
   }
 
   @UseGuards(AccessTokenGuard)

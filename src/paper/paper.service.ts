@@ -5,6 +5,7 @@ import { PAPER_ERROR } from './constants/paper.error.js';
 import { CreatePaperRequestDto } from './dto/request/create-paper.request.dto.js';
 import { UpdatePaperStatusRequestDto } from './dto/request/update-paper-status.request.dto.js';
 import { UpdatePaperRequestDto } from './dto/request/update-paper.request.dto.js';
+import { UpdatePaperMemberRequestDto } from './dto/request/update-paper-member.request.dto.js';
 import { AddPaperMemberRequestDto } from './dto/request/add-paper-member.request.dto.js';
 import { PaperResponseDto } from './dto/response/paper.response.dto.js';
 import { PAPER_STATUS, PAPER_STATUS_LABEL, DEFAULT_PAPER_STATUS } from './constants/paper-status.constant.js';
@@ -24,6 +25,7 @@ const paperInclude = {
   schedules: {
     select: {
       id: true,
+      schedule_type: true,
       title: true,
       start_at: true,
       end_at: true,
@@ -242,6 +244,35 @@ export class PaperService {
     return this.getPaper(userId, labId, paperId);
   }
 
+  async updateMemberRole(
+    userId: number,
+    labId: number,
+    paperId: number,
+    memberUserId: number,
+    dto: UpdatePaperMemberRequestDto,
+  ): Promise<PaperResponseDto> {
+    const requester = await this.chkLabMember(userId, labId);
+    const paper = await this.chkPaperExists(paperId, labId);
+    this.chkManagePermission(requester, paper);
+
+    const memberIdMap = await this.resolveLabMemberIds([memberUserId], labId);
+    const targetMemberId = memberIdMap.get(memberUserId)!;
+
+    // 주저자 지정은 논문 정보 수정(updatePaper)에서만 다루므로 여기서는 막습니다.
+    if (targetMemberId === paper.lead_author_member_id) {
+      throw new BadRequestException(PAPER_ERROR.CANNOT_CHANGE_LEAD_AUTHOR_ROLE);
+    }
+
+    const result = await this.prisma.paper_members.updateMany({
+      where: { paper_id: BigInt(paperId), lab_member_id: targetMemberId },
+      data: { role: dto.role },
+    });
+
+    if (result.count === 0) throw new NotFoundException(PAPER_ERROR.PAPER_MEMBER_NOT_FOUND);
+
+    return this.getPaper(userId, labId, paperId);
+  }
+
   async removeMember(
     userId: number,
     labId: number,
@@ -364,6 +395,7 @@ export class PaperService {
     const schedule = paper.schedules
       ? {
           id: Number(paper.schedules.id),
+          scheduleType: paper.schedules.schedule_type,
           title: paper.schedules.title,
           startAt: paper.schedules.start_at,
           endAt: paper.schedules.end_at,

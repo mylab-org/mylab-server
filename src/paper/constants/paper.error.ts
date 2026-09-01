@@ -9,6 +9,7 @@ export const PAPER_ERROR_CODES = {
   ALREADY_PAPER_MEMBER: 'PA006',
   CANNOT_REMOVE_LEAD_AUTHOR: 'PA007',
   PAPER_MEMBER_NOT_FOUND: 'PA008',
+  CANNOT_CHANGE_LEAD_AUTHOR_ROLE: 'PA009',
 };
 
 export const PAPER_ERROR = {
@@ -51,5 +52,10 @@ export const PAPER_ERROR = {
     code: PAPER_ERROR_CODES.PAPER_MEMBER_NOT_FOUND,
     message: '논문에 참여하고 있지 않은 멤버입니다.',
     status: HttpStatus.NOT_FOUND,
+  },
+  CANNOT_CHANGE_LEAD_AUTHOR_ROLE: {
+    code: PAPER_ERROR_CODES.CANNOT_CHANGE_LEAD_AUTHOR_ROLE,
+    message: '주저자의 역할은 변경할 수 없습니다. 주저자를 바꾸려면 논문 정보 수정을 이용하세요.',
+    status: HttpStatus.BAD_REQUEST,
   },
 };

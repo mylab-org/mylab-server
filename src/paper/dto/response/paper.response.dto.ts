@@ -32,6 +32,13 @@ export class PaperScheduleDto {
   @ApiProperty({ example: 5 })
   id: number;
 
+  @ApiProperty({
+    example: 'CONFERENCE',
+    enum: ['CONFERENCE', 'MEETING', 'LAB_DINNER'],
+    description: '일정 종류 (논문은 보통 학회 일정에 연결됨)',
+  })
+  scheduleType: string;
+
   @ApiProperty({ example: '2025 한국통신학회 동계종합학술발표회' })
   title: string;
 

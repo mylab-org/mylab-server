@@ -4,6 +4,7 @@ import { PaperResponseDto } from '../dto/response/paper.response.dto.js';
 import { CreatePaperRequestDto } from '../dto/request/create-paper.request.dto.js';
 import { UpdatePaperStatusRequestDto } from '../dto/request/update-paper-status.request.dto.js';
 import { UpdatePaperRequestDto } from '../dto/request/update-paper.request.dto.js';
+import { UpdatePaperMemberRequestDto } from '../dto/request/update-paper-member.request.dto.js';
 import { AddPaperMemberRequestDto } from '../dto/request/add-paper-member.request.dto.js';
 
 const labIdParam = () => ApiParam({ name: 'labId', description: '연구실 ID', type: Number });
@@ -94,6 +95,23 @@ export const ApiAddPaperMember = () =>
     ApiResponse({ status: 400, description: '이미 참여 중인 멤버' }),
     ApiResponse({ status: 403, description: '권한 없음' }),
     ApiResponse({ status: 404, description: '존재하지 않는 논문 / 존재하지 않는 멤버' }),
+  );
+
+export const ApiUpdatePaperMember = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '논문 참여 멤버 역할 수정',
+      description: '주저자 또는 교수/랩장만 가능. 주저자의 역할은 변경할 수 없음(논문 정보 수정에서 주저자 교체).',
+    }),
+    labIdParam(),
+    paperIdParam(),
+    ApiParam({ name: 'memberUserId', description: '역할을 수정할 유저 ID', type: Number }),
+    ApiBody({ type: UpdatePaperMemberRequestDto }),
+    ApiResponse({ status: 200, description: '수정 성공', type: PaperResponseDto }),
+    ApiResponse({ status: 400, description: '주저자의 역할은 변경 불가' }),
+    ApiResponse({ status: 403, description: '권한 없음' }),
+    ApiResponse({ status: 404, description: '존재하지 않는 논문 / 참여 중이지 않은 멤버' }),
   );
 
 export const ApiRemovePaperMember = () =>
