@@ -102,10 +102,12 @@ export function ApiGetMembers() {
     ApiBearerAuth(),
     ApiOperation({
       summary: '연구실 멤버 조회',
+      description: '해당 연구실에 소속된 멤버만 조회할 수 있습니다.',
     }),
     ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
     ApiResponse({ status: 200, description: '조회 성공', type: [GetMembersResponseDto] }),
-    ApiResponse({ status: 404, description: '존재하지 않는 연구실' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 404, description: '연구실에 소속되지 않은 사용자' }),
   );
 }
 

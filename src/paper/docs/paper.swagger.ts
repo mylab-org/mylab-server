@@ -16,7 +16,7 @@ export const ApiCreatePaper = () =>
     ApiOperation({
       summary: '논문 등록',
       description:
-        '연구실에 논문(연구 프로젝트)을 새로 등록. leadAuthorUserId 미지정 시 작성자 본인이 주저자가 됨.',
+        '연구실에 논문(연구 프로젝트)을 새로 등록. leadAuthorUserId 미지정 시 작성자 본인이 주저자가 됨. scheduleId를 생략하면 제출 학회가 정해지지 않은 논문으로 등록됨.',
     }),
     labIdParam(),
     ApiBody({ type: CreatePaperRequestDto }),

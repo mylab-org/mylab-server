@@ -205,7 +205,9 @@ export class LabService {
   }
 
   // 연구실 멤버 조회
-  async getMembers(labId: number): Promise<GetMembersResponseDto[]> {
+  async getMembers(userId: number, labId: number): Promise<GetMembersResponseDto[]> {
+    await this.chkUserInLab(userId, labId);
+
     const members = await this.prisma.lab_members.findMany({
       where: { lab_id: BigInt(labId), left_at: null },
       include: {
@@ -317,6 +319,16 @@ export class LabService {
 
     if (existMemberInLab) {
       throw new CommonException(LAB_ERRORS.ALREADY_IN_LAB);
+    }
+  }
+
+  private async chkUserInLab(userId: number, labId: number): Promise<void> {
+    const member = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(userId), lab_id: BigInt(labId), left_at: null },
+    });
+
+    if (!member) {
+      throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
     }
   }
 

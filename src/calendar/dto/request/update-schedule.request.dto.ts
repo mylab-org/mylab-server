@@ -66,4 +66,12 @@ export class UpdateScheduleRequestDto {
   @IsOptional()
   @IsEnum(RecurrenceType)
   recurrence_type?: RecurrenceType;
+
+  @ApiPropertyOptional({
+    example: '2026-01-28T23:59:00.000Z',
+    description: '논문 제출 마감 일시 (CONFERENCE 타입에서 사용)',
+  })
+  @IsOptional()
+  @IsDateString()
+  submission_deadline?: string;
 }
