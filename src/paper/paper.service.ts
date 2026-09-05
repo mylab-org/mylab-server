@@ -47,7 +47,9 @@ export class PaperService {
     dto: CreatePaperRequestDto,
   ): Promise<PaperResponseDto> {
     await this.chkLabMember(userId, labId);
-    await this.chkScheduleInLab(dto.scheduleId, labId);
+    if (dto.scheduleId !== undefined) {
+      await this.chkScheduleInLab(dto.scheduleId, labId);
+    }
 
     const leadAuthorUserId = dto.leadAuthorUserId ?? userId;
     const participantUserIds = (dto.participantUserIds ?? []).filter(
@@ -65,7 +67,7 @@ export class PaperService {
         data: {
           title: dto.title,
           lab_id: BigInt(labId),
-          schedule_id: BigInt(dto.scheduleId),
+          schedule_id: dto.scheduleId !== undefined ? BigInt(dto.scheduleId) : null,
           lead_author_member_id: leadAuthorMemberId,
           status: DEFAULT_PAPER_STATUS,
         },

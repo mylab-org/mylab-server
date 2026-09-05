@@ -6,9 +6,13 @@ export class CreatePaperRequestDto {
   @IsString()
   title: string;
 
-  @ApiProperty({ example: 1, description: '이 논문과 연결할 일정(schedule) ID' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: '이 논문과 연결할 일정(schedule) ID. 제출할 학회가 정해지지 않았다면 생략 가능',
+  })
+  @IsOptional()
   @IsInt()
-  scheduleId: number;
+  scheduleId?: number;
 
   @ApiPropertyOptional({ example: 3, description: '주저자 유저 ID (미지정 시 작성자 본인)' })
   @IsOptional()
