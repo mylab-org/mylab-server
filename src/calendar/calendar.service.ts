@@ -36,6 +36,7 @@ export class CalendarService {
           start_at: startAt,
           end_at: endAt,
           location: dto.location,
+          submission_deadline: dto.submission_deadline ? new Date(dto.submission_deadline) : null,
           created_by: BigInt(userId),
         },
         select: {
@@ -153,6 +154,10 @@ export class CalendarService {
           start_at: startAt,
           end_at: endAt,
           location,
+          submission_deadline:
+            dto.submission_deadline !== undefined
+              ? new Date(dto.submission_deadline)
+              : undefined,
           updated_by: BigInt(userId),
         },
         select: {
