@@ -151,7 +151,7 @@ model paper_members {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model papers {
   id                    BigInt          @id @default(autoincrement())
-  schedule_id           BigInt
+  schedule_id           BigInt?
   lab_id                BigInt
   title                 String
   lead_author_member_id BigInt?
