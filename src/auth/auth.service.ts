@@ -33,6 +33,15 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterRequestDto) {
+    const verifiedUser = await this.prisma.users.findUnique({
+      where: { email: dto.email },
+      select: { is_email_verified: true },
+    });
+
+    if (verifiedUser?.is_email_verified) {
+      throw new CommonException(AUTH_ERROR.DUPLICATE_EMAIL);
+    }
+
     await this.rateLimitService.checkEmailRateLimit(dto.email);
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
