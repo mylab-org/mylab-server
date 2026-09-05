@@ -14,6 +14,7 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'access_toke
   }
 
   validate(payload: { sub: string }) {
-    return { userId: payload.sub };
+    // JWT의 sub는 문자열이므로, 숫자로 변환해 req.user.userId 타입(number)과 실제 값을 맞춥니다.
+    return { userId: Number(payload.sub) };
   }
 }
