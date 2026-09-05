@@ -205,7 +205,10 @@ export class LabService {
   }
 
   // 연구실 멤버 조회
-  async getMembers(labId: number): Promise<GetMembersResponseDto[]> {
+  async getMembers(userId: number, labId: number): Promise<GetMembersResponseDto[]> {
+    // 같은 연구실에 소속된 멤버만 명단을 볼 수 있습니다.
+    await this.chkUserInLab(userId, labId);
+
     const members = await this.prisma.lab_members.findMany({
       where: { lab_id: BigInt(labId), left_at: null },
       include: {
@@ -317,6 +320,17 @@ export class LabService {
 
     if (existMemberInLab) {
       throw new CommonException(LAB_ERRORS.ALREADY_IN_LAB);
+    }
+  }
+
+  // 연구실 소속 여부 확인 (역할과 무관하게 활성 멤버인지만 확인)
+  private async chkUserInLab(userId: number, labId: number): Promise<void> {
+    const member = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(userId), lab_id: BigInt(labId), left_at: null },
+    });
+
+    if (!member) {
+      throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
     }
   }
 

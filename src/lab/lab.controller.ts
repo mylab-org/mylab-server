@@ -88,10 +88,14 @@ export class LabController {
     return this.labService.joinLab(req.user.userId, dto);
   }
 
+  @UseGuards(AccessTokenGuard)
   @Get(':labId/members')
   @ApiGetMembers()
-  async getMembers(@Param('labId', ParseIntPipe) labId: number): Promise<GetMembersResponseDto[]> {
-    return this.labService.getMembers(labId);
+  async getMembers(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+  ): Promise<GetMembersResponseDto[]> {
+    return this.labService.getMembers(req.user.userId, labId);
   }
 
   @UseGuards(AccessTokenGuard)
