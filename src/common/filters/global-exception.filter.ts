@@ -22,7 +22,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let code = 'INTERNAL_SERVER_ERROR';
     let message = '서버 오류가 발생했습니다';
 
-    // 의도한 예외(HttpException)가 아닌 경우, 원인을 알 수 있도록 스택까지 남깁니다.
     if (!(exception instanceof HttpException)) {
       this.logger.error(
         `${request.method} ${request.url} - 처리되지 않은 예외`,

@@ -27,7 +27,6 @@ export class PaperMemberDto {
   isLeadAuthor: boolean;
 }
 
-// 논문과 연결된 일정(학회) 정보 — 카드 UI의 학회명/기간/장소/마감일에 사용
 export class PaperScheduleDto {
   @ApiProperty({ example: 5 })
   id: number;
