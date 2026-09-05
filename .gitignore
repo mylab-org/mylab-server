@@ -156,8 +156,13 @@ $RECYCLE.BIN/
 .vscode-test
 .webpack/
 
+# ================================
+# Claude Code (개인 로컬 설정)
+# ================================
+.claude/
+
 # prisma
-/prisma/migrations/migration_lock.toml
-migration_lock.toml
+# migration_lock.toml은 마이그레이션 폴더의 DB provider를 기록하는 파일이라
+# 팀원 간 공유가 필요합니다. (Prisma 공식 권장: 커밋 대상)
 /generated/prisma
 generated/
