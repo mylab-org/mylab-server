@@ -9,6 +9,7 @@ import { LoggerMiddleware } from './common/middlewares/logger.middleware.js';
 import { BoardModule } from './board/board.module.js';
 import { CommentModule } from './comment/comment.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
+import { PaperModule } from './paper/paper.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CalendarModule } from './calendar/calendar.module.js';
     BoardModule,
     CommentModule,
     CalendarModule,
+    PaperModule,
   ],
   controllers: [AppController],
   providers: [AppService],
