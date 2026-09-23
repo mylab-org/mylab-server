@@ -1,7 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { LoginResponseDto } from '../dto/response/login.response.dto.js';
-import { MessageResponseDto } from '../dto/response/message.response.dto.js';
+import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 import { TokenResponseDto } from '../dto/response/token.response.dto.js';
 
 export function ApiRegister() {
