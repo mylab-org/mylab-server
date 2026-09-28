@@ -1,12 +1,54 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
-import { BoardAuthorDto, BoardLabDto } from './create-board.response.dto.js';
+
+const getAuthorLab = (obj: unknown) => {
+  const currentObj = obj as {
+    lab_members?: Array<{
+      labs?: { id: number | bigint; name: string };
+    }>;
+  };
+
+  return currentObj.lab_members?.[0]?.labs;
+};
+
+export class BoardAuthorDto {
+  @ApiProperty({ example: 1, description: '작성자 ID' })
+  @Expose()
+  @Transform(({ obj }) => Number((obj as { id: number | bigint }).id))
+  uid: number;
+
+  @ApiProperty({ example: '홍길동', description: '작성자 이름' })
+  @Expose()
+  name: string;
+
+  @ApiProperty({ example: 'MASTER', description: '학위' })
+  @Expose()
+  degree: string;
+
+  @ApiProperty({ example: 1, nullable: true, description: '작성자 소속 연구실 ID' })
+  @Expose()
+  @Transform(({ obj }) => {
+    const lab = getAuthorLab(obj);
+    return lab ? Number(lab.id) : null;
+  })
+  labId: number | null;
+
+  @ApiProperty({
+    example: '인공지능 연구실',
+    nullable: true,
+    description: '작성자 소속 연구실 이름',
+  })
+  @Expose()
+  @Transform(({ obj }) => getAuthorLab(obj)?.name ?? null)
+  labName: string | null;
+}
 
 // [1] 개별 게시글 dto
 export class PostItemDto {
-  @ApiProperty({ example: '1' })
+  @ApiProperty({ example: 1 })
   @Expose()
-  id: string;
+  @Transform(({ value }) => Number(value))
+  id: number;
 
   @ApiProperty({ example: '게시글 제목입니다.' })
   @Expose()
@@ -18,28 +60,26 @@ export class PostItemDto {
 
   @ApiProperty({ example: '2026-04-25T00:00:00Z' })
   @Expose()
-  created_at: Date;
+  @Transform(({ obj }) => (obj as { created_at: Date }).created_at)
+  createdAt: Date;
 
   @ApiProperty({ type: BoardAuthorDto })
   @Expose()
   @Type(() => BoardAuthorDto)
   author: BoardAuthorDto;
 
-  @ApiProperty({ type: BoardLabDto, nullable: true })
+  @ApiProperty({ example: 3, description: '좋아요 수' })
+  @Expose()
+  @Transform(({ obj }) => (obj as { like_count: number }).like_count)
+  likeCount: number;
+
+  @ApiProperty({ example: true, description: '로그인한 사용자의 좋아요 여부' })
   @Expose()
   @Transform(({ obj }) => {
-    const currentObj = obj as {
-      author?: {
-        lab_members?: Array<{
-          labs?: { id: number | bigint; name: string };
-        }>;
-      };
-    };
-
-    const lab = currentObj.author?.lab_members?.[0]?.labs;
-    return lab ? { id: lab.id.toString(), name: lab.name } : null;
+    const source = obj as { post_likes?: unknown[] };
+    return (source.post_likes?.length ?? 0) > 0;
   })
-  lab: BoardLabDto;
+  isLiked: boolean;
 
   @ApiProperty({ example: 5 })
   @Expose()

@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   CategoryItemDto,
@@ -89,6 +94,11 @@ export class BoardService {
           _count: {
             select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
           },
+          post_likes: {
+            where: { user_id: BigInt(userId) },
+            take: 1,
+            select: { id: true },
+          },
         },
       }),
       this.prisma.posts.count({
@@ -110,41 +120,16 @@ export class BoardService {
   async createBoard(userId: number, categoryId: number, boardDto: CreateUpdateBoardRequest) {
     await this.chkUserAccessBoard(userId, categoryId);
 
-    return this.prisma.posts.create({
+    await this.prisma.posts.create({
       data: {
         title: boardDto.title,
         content: boardDto.content,
         category_id: BigInt(categoryId),
         author_id: BigInt(userId),
       },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        created_at: true,
-        updated_at: true,
-        like_count: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            degree: true,
-            lab_members: {
-              where: { left_at: null },
-              take: 1, // 가장 최근 혹은 첫 번째 소속 정보만 가져옴
-              select: {
-                labs: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
+
+    return '게시글이 작성되었습니다.';
   }
 
   async updateBoard(userId: number, pid: number, boardDto: CreateUpdateBoardRequest) {
@@ -198,6 +183,47 @@ export class BoardService {
     });
 
     return '게시글이 삭제되었습니다.';
+  }
+
+  async setBoardLike(userId: number, pid: number, isLike: boolean) {
+    const post = await this.prisma.posts.findUnique({
+      where: { id: BigInt(pid) },
+      select: { category_id: true },
+    });
+    if (!post) throw new NotFoundException(BOARD_ERROR.BOARD_NOT_FOUND);
+
+    await this.chkUserAccessBoard(userId, Number(post.category_id));
+
+    return this.prisma.$transaction(async (tx) => {
+      const where = {
+        post_id_user_id: { post_id: BigInt(pid), user_id: BigInt(userId) },
+      };
+      const like = await tx.post_likes.findUnique({ where });
+
+      if (isLike) {
+        if (like) throw new ConflictException(BOARD_ERROR.ALREADY_LIKED);
+
+        await tx.post_likes.create({
+          data: { post_id: BigInt(pid), user_id: BigInt(userId) },
+        });
+        await tx.posts.update({
+          where: { id: BigInt(pid) },
+          data: { like_count: { increment: 1 } },
+        });
+
+        return '좋아요가 설정되었습니다.';
+      }
+
+      if (!like) throw new NotFoundException(BOARD_ERROR.LIKE_NOT_FOUND);
+
+      await tx.post_likes.delete({ where });
+      await tx.posts.update({
+        where: { id: BigInt(pid) },
+        data: { like_count: { decrement: 1 } },
+      });
+
+      return '좋아요가 해제되었습니다.';
+    });
   }
 
   private async chkUserAccessBoard(userId: number, categoryId: number) {

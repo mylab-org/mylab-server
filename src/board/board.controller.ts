@@ -20,11 +20,12 @@ import {
   ApiDeleteBoard,
   ApiGetBoard,
   ApiGetCategory,
+  ApiLikeBoard,
+  ApiUnlikeBoard,
   ApiUpdateBoard,
 } from './docs/board.swagger.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
 import { plainToInstance } from 'class-transformer';
-import { CreateBoardResponseDto } from './dto/response/create-board.response.dto.js';
 import { GetBoardResponseDto } from './dto/response/get-board.response.dto.js';
 import { User } from '../common/decoraters/user.decorator.js';
 
@@ -62,11 +63,12 @@ export class BoardController {
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @Body() board: CreateUpdateBoardRequest,
   ) {
-    const response = await this.boardService.createBoard(userId, categoryId, board);
+    const message = await this.boardService.createBoard(userId, categoryId, board);
 
-    return plainToInstance(CreateBoardResponseDto, response, {
-      excludeExtraneousValues: true, // @Expose가 붙지 않은 필드(lab_members 등)는 자동으로 제외
-    });
+    return {
+      status: 200,
+      message: message,
+    };
   }
 
   @UseGuards(AccessTokenGuard)
@@ -89,6 +91,30 @@ export class BoardController {
   @ApiDeleteBoard()
   async deleteBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
     const message = await this.boardService.deleteBoard(userId, pid);
+
+    return {
+      status: 200,
+      message: message,
+    };
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Post('/:pid/like')
+  @ApiLikeBoard()
+  async likeBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
+    const message = await this.boardService.setBoardLike(userId, pid, true);
+
+    return {
+      status: 200,
+      message: message,
+    };
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Delete('/:pid/like')
+  @ApiUnlikeBoard()
+  async unlikeBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
+    const message = await this.boardService.setBoardLike(userId, pid, false);
 
     return {
       status: 200,
