@@ -20,6 +20,8 @@ import {
   ApiDeleteBoard,
   ApiGetBoard,
   ApiGetCategory,
+  ApiLikeBoard,
+  ApiUnlikeBoard,
   ApiUpdateBoard,
 } from './docs/board.swagger.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
@@ -89,6 +91,30 @@ export class BoardController {
   @ApiDeleteBoard()
   async deleteBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
     const message = await this.boardService.deleteBoard(userId, pid);
+
+    return {
+      status: 200,
+      message: message,
+    };
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Post('/:pid/like')
+  @ApiLikeBoard()
+  async likeBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
+    const message = await this.boardService.setBoardLike(userId, pid, true);
+
+    return {
+      status: 200,
+      message: message,
+    };
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Delete('/:pid/like')
+  @ApiUnlikeBoard()
+  async unlikeBoard(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
+    const message = await this.boardService.setBoardLike(userId, pid, false);
 
     return {
       status: 200,

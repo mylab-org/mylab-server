@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   CategoryItemDto,
@@ -198,6 +203,47 @@ export class BoardService {
     });
 
     return '게시글이 삭제되었습니다.';
+  }
+
+  async setBoardLike(userId: number, pid: number, isLike: boolean) {
+    const post = await this.prisma.posts.findUnique({
+      where: { id: BigInt(pid) },
+      select: { category_id: true },
+    });
+    if (!post) throw new NotFoundException(BOARD_ERROR.BOARD_NOT_FOUND);
+
+    await this.chkUserAccessBoard(userId, Number(post.category_id));
+
+    return this.prisma.$transaction(async (tx) => {
+      const where = {
+        post_id_user_id: { post_id: BigInt(pid), user_id: BigInt(userId) },
+      };
+      const like = await tx.post_likes.findUnique({ where });
+
+      if (isLike) {
+        if (like) throw new ConflictException(BOARD_ERROR.ALREADY_LIKED);
+
+        await tx.post_likes.create({
+          data: { post_id: BigInt(pid), user_id: BigInt(userId) },
+        });
+        await tx.posts.update({
+          where: { id: BigInt(pid) },
+          data: { like_count: { increment: 1 } },
+        });
+
+        return '좋아요가 설정되었습니다.';
+      }
+
+      if (!like) throw new NotFoundException(BOARD_ERROR.LIKE_NOT_FOUND);
+
+      await tx.post_likes.delete({ where });
+      await tx.posts.update({
+        where: { id: BigInt(pid) },
+        data: { like_count: { decrement: 1 } },
+      });
+
+      return '좋아요가 해제되었습니다.';
+    });
   }
 
   private async chkUserAccessBoard(userId: number, categoryId: number) {

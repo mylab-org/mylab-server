@@ -56,3 +56,23 @@ export const ApiDeleteBoard = () => {
     ApiResponse({ status: 200, description: '성공' }),
   );
 };
+
+export const ApiLikeBoard = () => {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '게시판 글 좋아요',
+    }),
+    ApiResponse({ status: 200, description: '성공' }),
+  );
+};
+
+export const ApiUnlikeBoard = () => {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '게시판 글 좋아요 해제',
+    }),
+    ApiResponse({ status: 200, description: '성공' }),
+  );
+};
