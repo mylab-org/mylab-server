@@ -9,11 +9,22 @@ import { CreateUpdateCommentRequestDto } from './dto/request/create-update-comme
 import { COMMENT_ERROR } from './constants/comment.error.js';
 import { Prisma } from '@prisma/client';
 
+const authorSelect = {
+  select: {
+    name: true,
+    lab_members: {
+      where: { left_at: null },
+      take: 1,
+      select: { labs: { select: { name: true } } },
+    },
+  },
+} as const;
+
 export const commentInclude = {
-  author: { select: { name: true } },
+  author: authorSelect,
   replies: {
     include: {
-      author: { select: { name: true } },
+      author: authorSelect,
     },
     orderBy: { created_at: 'asc' },
   },
@@ -58,6 +69,7 @@ export class CommentService {
         content: '삭제된 댓글입니다.',
         author: {
           name: '',
+          lab_members: [],
         },
         replies: processedReplies,
       };
