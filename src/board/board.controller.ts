@@ -26,7 +26,6 @@ import {
 } from './docs/board.swagger.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
 import { plainToInstance } from 'class-transformer';
-import { CreateBoardResponseDto } from './dto/response/create-board.response.dto.js';
 import { GetBoardResponseDto } from './dto/response/get-board.response.dto.js';
 import { User } from '../common/decoraters/user.decorator.js';
 
@@ -64,11 +63,12 @@ export class BoardController {
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @Body() board: CreateUpdateBoardRequest,
   ) {
-    const response = await this.boardService.createBoard(userId, categoryId, board);
+    const message = await this.boardService.createBoard(userId, categoryId, board);
 
-    return plainToInstance(CreateBoardResponseDto, response, {
-      excludeExtraneousValues: true, // @Expose가 붙지 않은 필드(lab_members 등)는 자동으로 제외
-    });
+    return {
+      status: 200,
+      message: message,
+    };
   }
 
   @UseGuards(AccessTokenGuard)

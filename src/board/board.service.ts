@@ -94,6 +94,11 @@ export class BoardService {
           _count: {
             select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
           },
+          post_likes: {
+            where: { user_id: BigInt(userId) },
+            take: 1,
+            select: { id: true },
+          },
         },
       }),
       this.prisma.posts.count({
@@ -115,41 +120,16 @@ export class BoardService {
   async createBoard(userId: number, categoryId: number, boardDto: CreateUpdateBoardRequest) {
     await this.chkUserAccessBoard(userId, categoryId);
 
-    return this.prisma.posts.create({
+    await this.prisma.posts.create({
       data: {
         title: boardDto.title,
         content: boardDto.content,
         category_id: BigInt(categoryId),
         author_id: BigInt(userId),
       },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        created_at: true,
-        updated_at: true,
-        like_count: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            degree: true,
-            lab_members: {
-              where: { left_at: null },
-              take: 1, // 가장 최근 혹은 첫 번째 소속 정보만 가져옴
-              select: {
-                labs: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
+
+    return '게시글이 작성되었습니다.';
   }
 
   async updateBoard(userId: number, pid: number, boardDto: CreateUpdateBoardRequest) {
