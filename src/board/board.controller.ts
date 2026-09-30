@@ -46,7 +46,7 @@ export class BoardController {
   async getBoard(
     @User('userId') userId: number,
     @Param('categoryId', ParseIntPipe) categoryId: number,
-    @Query('page', new DefaultValuePipe(1)) page: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
   ) {
     const response = await this.boardService.getBoard(userId, categoryId, page);
 
