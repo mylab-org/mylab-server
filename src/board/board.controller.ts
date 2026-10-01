@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   Param,
@@ -46,9 +45,9 @@ export class BoardController {
   async getBoard(
     @User('userId') userId: number,
     @Param('categoryId', ParseIntPipe) categoryId: number,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
   ) {
-    const response = await this.boardService.getBoard(userId, categoryId, page);
+    const response = await this.boardService.getBoard(userId, categoryId, cursor);
 
     return plainToInstance(GetBoardResponseDto, response, {
       excludeExtraneousValues: true,

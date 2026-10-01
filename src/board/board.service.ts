@@ -64,47 +64,48 @@ export class BoardService {
     );
   }
 
-  async getBoard(userId: number, categoryId: number, page: number = 1, pageSize: number = 20) {
+  async getBoard(userId: number, categoryId: number, cursor?: number, pageSize: number = 20) {
     // 1. 게시판 접근 권한 확인
     await this.chkUserAccessBoard(userId, categoryId);
 
-    // 1. 전체 게시글 개수와 목록 조회를 병렬로 실행
-    const [posts, totalCount] = await this.prisma.$transaction([
-      this.prisma.posts.findMany({
-        where: { category_id: BigInt(categoryId) },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        orderBy: { created_at: 'desc' },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              degree: true,
-              lab_members: {
-                // <--- 이 부분이 DTO의 Transform에서 사용됨
-                where: { left_at: null },
-                take: 1,
-                select: {
-                  labs: { select: { id: true, name: true } },
-                },
+    // 2. 커서(마지막으로 받은 게시글 id)보다 오래된 게시글 조회
+    //    앞에서 글이 추가/삭제되어도 다음 페이지가 밀리지 않도록 순번(offset) 대신 id 기준으로 자름
+    const rows = await this.prisma.posts.findMany({
+      where: {
+        category_id: BigInt(categoryId),
+        ...(cursor !== undefined && { id: { lt: BigInt(cursor) } }),
+      },
+      take: pageSize + 1, // 다음 페이지 존재 여부 확인용으로 1개 더 조회
+      orderBy: { id: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            degree: true,
+            lab_members: {
+              // <--- 이 부분이 DTO의 Transform에서 사용됨
+              where: { left_at: null },
+              take: 1,
+              select: {
+                labs: { select: { id: true, name: true } },
               },
             },
           },
-          _count: {
-            select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
-          },
-          post_likes: {
-            where: { user_id: BigInt(userId) },
-            take: 1,
-            select: { id: true },
-          },
         },
-      }),
-      this.prisma.posts.count({
-        where: { category_id: BigInt(categoryId) },
-      }),
-    ]);
+        _count: {
+          select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
+        },
+        post_likes: {
+          where: { user_id: BigInt(userId) },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+
+    const hasNext = rows.length > pageSize;
+    const posts = hasNext ? rows.slice(0, pageSize) : rows;
 
     return {
       posts: posts.map((post) => ({
@@ -115,10 +116,8 @@ export class BoardService {
           : post.author,
       })),
       page: {
-        currentPage: page,
-        pageSize: pageSize,
-        totalCount: totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
+        nextCursor: hasNext ? Number(posts[posts.length - 1].id) : null,
+        hasNext,
       },
     };
   }

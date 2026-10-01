@@ -21,7 +21,12 @@ export const ApiGetBoard = () => {
       summary: '게시판 목록 조회',
     }),
     ApiParam({ name: 'categoryId', description: '카테고리 ID', type: Number }),
-    ApiQuery({ name: 'page', required: false, type: Number }),
+    ApiQuery({
+      name: 'cursor',
+      required: false,
+      type: Number,
+      description: '마지막으로 받은 게시글 id (첫 페이지는 생략, 이후 응답의 page.nextCursor 값)',
+    }),
     ApiResponse({ status: 200, description: '성공', type: GetBoardResponseDto }),
   );
 };

@@ -118,21 +118,19 @@ export class PostItemDto {
 
 // [2] 페이지 메타 정보 dto
 export class PaginationMetaDto {
-  @ApiProperty({ example: 1 })
+  @ApiProperty({
+    type: Number,
+    example: 82,
+    nullable: true,
+    description:
+      '다음 페이지 요청 시 cursor로 보낼 값 (마지막 게시글 id, 다음 페이지가 없으면 null)',
+  })
   @Expose()
-  currentPage: number;
+  nextCursor: number | null;
 
-  @ApiProperty({ example: 20 })
+  @ApiProperty({ example: true, description: '다음 페이지 존재 여부' })
   @Expose()
-  pageSize: number;
-
-  @ApiProperty({ example: 100 })
-  @Expose()
-  totalCount: number;
-
-  @ApiProperty({ example: 5 })
-  @Expose()
-  totalPages: number;
+  hasNext: boolean;
 }
 
 // [3] 최종 전체 응답 dto
