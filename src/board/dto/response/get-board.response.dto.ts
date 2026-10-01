@@ -12,18 +12,31 @@ const getAuthorLab = (obj: unknown) => {
 };
 
 export class BoardAuthorDto {
-  @ApiProperty({ example: 1, description: '작성자 ID' })
+  @ApiProperty({
+    type: Number,
+    example: 1,
+    nullable: true,
+    description: '작성자 ID (익명이면 null)',
+  })
   @Expose()
-  @Transform(({ obj }) => Number((obj as { id: number | bigint }).id))
-  uid: number;
+  @Transform(({ obj }) => {
+    const id = (obj as { id: number | bigint | null }).id;
+    return id === null ? null : Number(id);
+  })
+  uid: number | null;
 
-  @ApiProperty({ example: '홍길동', description: '작성자 이름' })
+  @ApiProperty({ example: '홍길동', description: '작성자 이름 (익명이면 "익명")' })
   @Expose()
   name: string;
 
-  @ApiProperty({ example: 'MASTER', description: '학위' })
+  @ApiProperty({
+    type: String,
+    example: 'MASTER',
+    nullable: true,
+    description: '학위 (익명이면 null)',
+  })
   @Expose()
-  degree: string;
+  degree: string | null;
 
   @ApiProperty({ example: 1, nullable: true, description: '작성자 소속 연구실 ID' })
   @Expose()
@@ -80,6 +93,19 @@ export class PostItemDto {
     return (source.post_likes?.length ?? 0) > 0;
   })
   isLiked: boolean;
+
+  @ApiProperty({ example: false, description: '익명 게시글 여부' })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_anonymous: boolean }).is_anonymous)
+  isAnonymous: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: '로그인한 사용자가 작성한 게시글인지 (수정/삭제 버튼 노출용)',
+  })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_mine: boolean }).is_mine)
+  isMine: boolean;
 
   @ApiProperty({ example: 5 })
   @Expose()

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateUpdateBoardRequest {
   @ApiProperty({ example: '게시글 제목', description: '게시글 제목' })
@@ -20,4 +20,12 @@ export class CreateUpdateBoardRequest {
   @IsArray() // 값이 있다면 배열이어야 함
   @IsString({ each: true }) // 배열의 각 요소는 문자열이어야 함
   Img?: string[];
+
+  @ApiPropertyOptional({
+    example: false,
+    description: '익명 작성 여부 (수정 시 보내지 않으면 기존 설정 유지)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }

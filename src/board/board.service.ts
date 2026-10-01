@@ -107,7 +107,13 @@ export class BoardService {
     ]);
 
     return {
-      posts,
+      posts: posts.map((post) => ({
+        ...post,
+        is_mine: post.author_id === BigInt(userId),
+        author: post.is_anonymous
+          ? { id: null, name: '익명', degree: null, lab_members: [] }
+          : post.author,
+      })),
       page: {
         currentPage: page,
         pageSize: pageSize,
@@ -120,16 +126,48 @@ export class BoardService {
   async createBoard(userId: number, categoryId: number, boardDto: CreateUpdateBoardRequest) {
     await this.chkUserAccessBoard(userId, categoryId);
 
-    await this.prisma.posts.create({
+    // 클라이언트가 목록 캐시에 바로 추가할 수 있도록 목록 조회(getBoard)와 같은 형태로 조회
+    const post = await this.prisma.posts.create({
       data: {
         title: boardDto.title,
         content: boardDto.content,
         category_id: BigInt(categoryId),
         author_id: BigInt(userId),
+        is_anonymous: boardDto.isAnonymous ?? false,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            degree: true,
+            lab_members: {
+              where: { left_at: null },
+              take: 1,
+              select: {
+                labs: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        _count: {
+          select: { comments: true },
+        },
+        post_likes: {
+          where: { user_id: BigInt(userId) },
+          take: 1,
+          select: { id: true },
+        },
       },
     });
 
-    return '게시글이 작성되었습니다.';
+    return {
+      ...post,
+      is_mine: true, // 방금 작성한 게시글이므로 항상 작성자 본인
+      author: post.is_anonymous
+        ? { id: null, name: '익명', degree: null, lab_members: [] }
+        : post.author,
+    };
   }
 
   async updateBoard(userId: number, pid: number, boardDto: CreateUpdateBoardRequest) {
@@ -137,13 +175,38 @@ export class BoardService {
 
     // 2. 트랜잭션을 사용하여 게시글 수정 및 이미지 업데이트를 동시에 처리
     return this.prisma.$transaction(async (tx) => {
-      // 2-1. 게시글 본문 수정
-      await tx.posts.update({
+      // 2-1. 게시글 본문 수정 — 클라이언트가 목록 캐시를 교체할 수 있도록 목록 조회(getBoard)와 같은 형태로 조회
+      const post = await tx.posts.update({
         where: { id: BigInt(pid) },
         data: {
           title: boardDto.title,
           content: boardDto.content,
+          is_anonymous: boardDto.isAnonymous,
           updated_at: new Date(), // 수동 업데이트 (스키마 설정에 따라 생략 가능)
+        },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              degree: true,
+              lab_members: {
+                where: { left_at: null },
+                take: 1,
+                select: {
+                  labs: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          _count: {
+            select: { comments: true },
+          },
+          post_likes: {
+            where: { user_id: BigInt(userId) },
+            take: 1,
+            select: { id: true },
+          },
         },
       });
 
@@ -166,7 +229,13 @@ export class BoardService {
         }
       }
 
-      return '게시글이 수정되었습니다.';
+      return {
+        ...post,
+        is_mine: true, // chkUserPostAuthor를 통과했으므로 항상 작성자 본인
+        author: post.is_anonymous
+          ? { id: null, name: '익명', degree: null, lab_members: [] }
+          : post.author,
+      };
     });
   }
 
