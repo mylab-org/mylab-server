@@ -12,18 +12,31 @@ const getAuthorLab = (obj: unknown) => {
 };
 
 export class BoardAuthorDto {
-  @ApiProperty({ example: 1, description: '작성자 ID' })
+  @ApiProperty({
+    type: Number,
+    example: 1,
+    nullable: true,
+    description: '작성자 ID (익명이면 null)',
+  })
   @Expose()
-  @Transform(({ obj }) => Number((obj as { id: number | bigint }).id))
-  uid: number;
+  @Transform(({ obj }) => {
+    const id = (obj as { id: number | bigint | null }).id;
+    return id === null ? null : Number(id);
+  })
+  uid: number | null;
 
-  @ApiProperty({ example: '홍길동', description: '작성자 이름' })
+  @ApiProperty({ example: '홍길동', description: '작성자 이름 (익명이면 "익명")' })
   @Expose()
   name: string;
 
-  @ApiProperty({ example: 'MASTER', description: '학위' })
+  @ApiProperty({
+    type: String,
+    example: 'MASTER',
+    nullable: true,
+    description: '학위 (익명이면 null)',
+  })
   @Expose()
-  degree: string;
+  degree: string | null;
 
   @ApiProperty({ example: 1, nullable: true, description: '작성자 소속 연구실 ID' })
   @Expose()
@@ -81,6 +94,19 @@ export class PostItemDto {
   })
   isLiked: boolean;
 
+  @ApiProperty({ example: false, description: '익명 게시글 여부' })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_anonymous: boolean }).is_anonymous)
+  isAnonymous: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: '로그인한 사용자가 작성한 게시글인지 (수정/삭제 버튼 노출용)',
+  })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_mine: boolean }).is_mine)
+  isMine: boolean;
+
   @ApiProperty({ example: 5 })
   @Expose()
   @Transform(({ obj }) => {
@@ -92,21 +118,19 @@ export class PostItemDto {
 
 // [2] 페이지 메타 정보 dto
 export class PaginationMetaDto {
-  @ApiProperty({ example: 1 })
+  @ApiProperty({
+    type: Number,
+    example: 82,
+    nullable: true,
+    description:
+      '다음 페이지 요청 시 cursor로 보낼 값 (마지막 게시글 id, 다음 페이지가 없으면 null)',
+  })
   @Expose()
-  currentPage: number;
+  nextCursor: number | null;
 
-  @ApiProperty({ example: 20 })
+  @ApiProperty({ example: true, description: '다음 페이지 존재 여부' })
   @Expose()
-  pageSize: number;
-
-  @ApiProperty({ example: 100 })
-  @Expose()
-  totalCount: number;
-
-  @ApiProperty({ example: 5 })
-  @Expose()
-  totalPages: number;
+  hasNext: boolean;
 }
 
 // [3] 최종 전체 응답 dto

@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   Param,
@@ -26,7 +25,7 @@ import {
 } from './docs/board.swagger.js';
 import { CreateUpdateBoardRequest } from './dto/request/create-update-board.request.dto.js';
 import { plainToInstance } from 'class-transformer';
-import { GetBoardResponseDto } from './dto/response/get-board.response.dto.js';
+import { GetBoardResponseDto, PostItemDto } from './dto/response/get-board.response.dto.js';
 import { User } from '../common/decoraters/user.decorator.js';
 
 @Controller('board')
@@ -46,9 +45,9 @@ export class BoardController {
   async getBoard(
     @User('userId') userId: number,
     @Param('categoryId', ParseIntPipe) categoryId: number,
-    @Query('page', new DefaultValuePipe(1)) page: number,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
   ) {
-    const response = await this.boardService.getBoard(userId, categoryId, page);
+    const response = await this.boardService.getBoard(userId, categoryId, cursor);
 
     return plainToInstance(GetBoardResponseDto, response, {
       excludeExtraneousValues: true,
@@ -63,12 +62,11 @@ export class BoardController {
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @Body() board: CreateUpdateBoardRequest,
   ) {
-    const message = await this.boardService.createBoard(userId, categoryId, board);
+    const post = await this.boardService.createBoard(userId, categoryId, board);
 
-    return {
-      status: 200,
-      message: message,
-    };
+    return plainToInstance(PostItemDto, post, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AccessTokenGuard)
@@ -79,11 +77,11 @@ export class BoardController {
     @Param('pid', ParseIntPipe) pid: number,
     @Body() board: CreateUpdateBoardRequest,
   ) {
-    const message = await this.boardService.updateBoard(userId, pid, board);
-    return {
-      status: 200,
-      message: message,
-    };
+    const post = await this.boardService.updateBoard(userId, pid, board);
+
+    return plainToInstance(PostItemDto, post, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AccessTokenGuard)

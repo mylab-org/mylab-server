@@ -39,6 +39,19 @@ export class ReplyCommentResponseDto {
   @Expose()
   @Type(() => AuthorDto)
   author: AuthorDto | null;
+
+  @ApiProperty({ example: false, description: '익명 댓글 여부' })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_anonymous: boolean }).is_anonymous)
+  isAnonymous: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: '로그인한 사용자가 작성한 댓글인지 (수정/삭제 버튼 노출용)',
+  })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_mine: boolean }).is_mine)
+  isMine: boolean;
 }
 
 export class getCommentResponseDto {
@@ -61,6 +74,19 @@ export class getCommentResponseDto {
   @Expose()
   @Type(() => AuthorDto)
   author: AuthorDto | null;
+
+  @ApiProperty({ example: false, description: '익명 댓글 여부' })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_anonymous: boolean }).is_anonymous)
+  isAnonymous: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: '로그인한 사용자가 작성한 댓글인지 (수정/삭제 버튼 노출용)',
+  })
+  @Expose()
+  @Transform(({ obj }) => (obj as { is_mine: boolean }).is_mine)
+  isMine: boolean;
 
   @ApiProperty({ type: [ReplyCommentResponseDto], description: '대댓글 배열' })
   @Expose()

@@ -64,17 +64,125 @@ export class BoardService {
     );
   }
 
-  async getBoard(userId: number, categoryId: number, page: number = 1, pageSize: number = 20) {
+  async getBoard(userId: number, categoryId: number, cursor?: number, pageSize: number = 20) {
     // 1. 게시판 접근 권한 확인
     await this.chkUserAccessBoard(userId, categoryId);
 
-    // 1. 전체 게시글 개수와 목록 조회를 병렬로 실행
-    const [posts, totalCount] = await this.prisma.$transaction([
-      this.prisma.posts.findMany({
-        where: { category_id: BigInt(categoryId) },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        orderBy: { created_at: 'desc' },
+    // 2. 커서(마지막으로 받은 게시글 id)보다 오래된 게시글 조회
+    //    앞에서 글이 추가/삭제되어도 다음 페이지가 밀리지 않도록 순번(offset) 대신 id 기준으로 자름
+    const rows = await this.prisma.posts.findMany({
+      where: {
+        category_id: BigInt(categoryId),
+        ...(cursor !== undefined && { id: { lt: BigInt(cursor) } }),
+      },
+      take: pageSize + 1, // 다음 페이지 존재 여부 확인용으로 1개 더 조회
+      orderBy: { id: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            degree: true,
+            lab_members: {
+              // <--- 이 부분이 DTO의 Transform에서 사용됨
+              where: { left_at: null },
+              take: 1,
+              select: {
+                labs: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        _count: {
+          select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
+        },
+        post_likes: {
+          where: { user_id: BigInt(userId) },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+
+    const hasNext = rows.length > pageSize;
+    const posts = hasNext ? rows.slice(0, pageSize) : rows;
+
+    return {
+      posts: posts.map((post) => ({
+        ...post,
+        is_mine: post.author_id === BigInt(userId),
+        author: post.is_anonymous
+          ? { id: null, name: '익명', degree: null, lab_members: [] }
+          : post.author,
+      })),
+      page: {
+        nextCursor: hasNext ? Number(posts[posts.length - 1].id) : null,
+        hasNext,
+      },
+    };
+  }
+
+  async createBoard(userId: number, categoryId: number, boardDto: CreateUpdateBoardRequest) {
+    await this.chkUserAccessBoard(userId, categoryId);
+
+    // 클라이언트가 목록 캐시에 바로 추가할 수 있도록 목록 조회(getBoard)와 같은 형태로 조회
+    const post = await this.prisma.posts.create({
+      data: {
+        title: boardDto.title,
+        content: boardDto.content,
+        category_id: BigInt(categoryId),
+        author_id: BigInt(userId),
+        is_anonymous: boardDto.isAnonymous ?? false,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            degree: true,
+            lab_members: {
+              where: { left_at: null },
+              take: 1,
+              select: {
+                labs: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        _count: {
+          select: { comments: true },
+        },
+        post_likes: {
+          where: { user_id: BigInt(userId) },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+
+    return {
+      ...post,
+      is_mine: true, // 방금 작성한 게시글이므로 항상 작성자 본인
+      author: post.is_anonymous
+        ? { id: null, name: '익명', degree: null, lab_members: [] }
+        : post.author,
+    };
+  }
+
+  async updateBoard(userId: number, pid: number, boardDto: CreateUpdateBoardRequest) {
+    await this.chkUserPostAuthor(userId, pid);
+
+    // 2. 트랜잭션을 사용하여 게시글 수정 및 이미지 업데이트를 동시에 처리
+    return this.prisma.$transaction(async (tx) => {
+      // 2-1. 게시글 본문 수정 — 클라이언트가 목록 캐시를 교체할 수 있도록 목록 조회(getBoard)와 같은 형태로 조회
+      const post = await tx.posts.update({
+        where: { id: BigInt(pid) },
+        data: {
+          title: boardDto.title,
+          content: boardDto.content,
+          is_anonymous: boardDto.isAnonymous,
+          updated_at: new Date(), // 수동 업데이트 (스키마 설정에 따라 생략 가능)
+        },
         include: {
           author: {
             select: {
@@ -82,7 +190,6 @@ export class BoardService {
               name: true,
               degree: true,
               lab_members: {
-                // <--- 이 부분이 DTO의 Transform에서 사용됨
                 where: { left_at: null },
                 take: 1,
                 select: {
@@ -92,58 +199,13 @@ export class BoardService {
             },
           },
           _count: {
-            select: { comments: true }, // 전체 댓글 개수만 따로 확인하고 싶을 때
+            select: { comments: true },
           },
           post_likes: {
             where: { user_id: BigInt(userId) },
             take: 1,
             select: { id: true },
           },
-        },
-      }),
-      this.prisma.posts.count({
-        where: { category_id: BigInt(categoryId) },
-      }),
-    ]);
-
-    return {
-      posts,
-      page: {
-        currentPage: page,
-        pageSize: pageSize,
-        totalCount: totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
-      },
-    };
-  }
-
-  async createBoard(userId: number, categoryId: number, boardDto: CreateUpdateBoardRequest) {
-    await this.chkUserAccessBoard(userId, categoryId);
-
-    await this.prisma.posts.create({
-      data: {
-        title: boardDto.title,
-        content: boardDto.content,
-        category_id: BigInt(categoryId),
-        author_id: BigInt(userId),
-      },
-    });
-
-    return '게시글이 작성되었습니다.';
-  }
-
-  async updateBoard(userId: number, pid: number, boardDto: CreateUpdateBoardRequest) {
-    await this.chkUserPostAuthor(userId, pid);
-
-    // 2. 트랜잭션을 사용하여 게시글 수정 및 이미지 업데이트를 동시에 처리
-    return this.prisma.$transaction(async (tx) => {
-      // 2-1. 게시글 본문 수정
-      await tx.posts.update({
-        where: { id: BigInt(pid) },
-        data: {
-          title: boardDto.title,
-          content: boardDto.content,
-          updated_at: new Date(), // 수동 업데이트 (스키마 설정에 따라 생략 가능)
         },
       });
 
@@ -166,7 +228,13 @@ export class BoardService {
         }
       }
 
-      return '게시글이 수정되었습니다.';
+      return {
+        ...post,
+        is_mine: true, // chkUserPostAuthor를 통과했으므로 항상 작성자 본인
+        author: post.is_anonymous
+          ? { id: null, name: '익명', degree: null, lab_members: [] }
+          : post.author,
+      };
     });
   }
 
