@@ -9,7 +9,11 @@ export class RefreshTokenGuard extends AuthGuard('refresh_token') {
       throw new UnauthorizedException(AUTH_ERROR.REFRESH_TOKEN_EXPIRED);
     }
 
-    if (info?.name === 'JsonWebTokenError' || !user) {
+    if (info?.name === 'JsonWebTokenError') {
+      throw new UnauthorizedException(AUTH_ERROR.REFRESH_TOKEN_INVALID);
+    }
+
+    if (!user) {
       throw new UnauthorizedException(AUTH_ERROR.REFRESH_TOKEN_MISSING);
     }
 

@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UserResponseDto } from '../dto/response/user.response.dto.js';
+import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 
 export function ApiGetProfile() {
   return applyDecorators(
@@ -24,8 +25,9 @@ export function ApiDeleteUser() {
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({ summary: '회원 탈퇴' }),
-    ApiResponse({ status: 200, description: '탈퇴 성공' }),
+    ApiResponse({ status: 200, description: '탈퇴 성공', type: MessageResponseDto }),
     ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 404, description: '존재하지 않는 사용자' }),
   );
 }
 
@@ -33,8 +35,9 @@ export function ApiChangePassword() {
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({ summary: '비밀번호 변경' }),
-    ApiResponse({ status: 200, description: '변경 성공' }),
+    ApiResponse({ status: 200, description: '변경 성공', type: MessageResponseDto }),
     ApiResponse({ status: 400, description: '현재 비밀번호 불일치' }),
     ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 404, description: '존재하지 않는 사용자' }),
   );
 }
