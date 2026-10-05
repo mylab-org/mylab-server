@@ -190,6 +190,16 @@ export class AuthService {
   async login(dto: LoginRequestDto) {
     const user = await this.prisma.users.findUnique({
       where: { email: dto.email },
+      include: {
+        lab_members: {
+          where: { left_at: null },
+          take: 1,
+          select: {
+            role: true,
+            labs: { select: { id: true, name: true } },
+          },
+        },
+      },
     });
 
     const isPasswordValid = user
@@ -207,6 +217,8 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id.toString());
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
+    const membership = user.lab_members[0];
+
     return {
       user: {
         id: user.id.toString(),
@@ -214,6 +226,13 @@ export class AuthService {
         name: user.name,
         degree: user.degree,
       },
+      lab: membership
+        ? {
+            labId: Number(membership.labs.id),
+            labName: membership.labs.name,
+            role: membership.role,
+          }
+        : null,
       ...tokens,
     };
   }
