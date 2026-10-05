@@ -14,6 +14,7 @@ import { AuthService } from './auth.service.js';
 import { LoginRequestDto } from './dto/request/login.request.dto.js';
 import { RegisterRequestDto } from './dto/request/register.request.dto.js';
 import { ResendVerificationDto } from './dto/request/resend-verification.dto.js';
+import { RefreshRequestDto } from './dto/request/refresh.request.dto.js';
 import { AccessTokenGuard } from './guards/access-token.guard.js';
 import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
 import {
@@ -65,7 +66,10 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(RefreshTokenGuard)
   @ApiRefresh()
-  async refreshToken(@Request() req: { user: { userId: string } }) {
+  async refreshToken(
+    @Request() req: { user: { userId: string } },
+    @Body() _dto: RefreshRequestDto,
+  ) {
     return this.authService.refreshToken(req.user.userId);
   }
 }

@@ -1,8 +1,9 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { LoginResponseDto } from '../dto/response/login.response.dto.js';
 import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 import { TokenResponseDto } from '../dto/response/token.response.dto.js';
+import { RefreshRequestDto } from '../dto/request/refresh.request.dto.js';
 
 export function ApiRegister() {
   return applyDecorators(
@@ -79,13 +80,14 @@ export function ApiLogout() {
 
 export function ApiRefresh() {
   return applyDecorators(
-    ApiBearerAuth(),
     ApiOperation({
       summary: '토큰 재발급',
       description:
-        'Refresh Token을 이용하여 새로운 Access Token을 발급받습니다. Authorization 헤더에 Access Token이 아닌 Refresh Token을 담아 요청합니다.',
+        'Refresh Token을 이용하여 새로운 Access/Refresh Token을 발급받습니다. Refresh Token은 요청 body로 전달합니다.',
     }),
+    ApiBody({ type: RefreshRequestDto }),
     ApiResponse({ status: 200, description: '토큰 재발급 성공', type: TokenResponseDto }),
+    ApiResponse({ status: 400, description: 'Refresh Token 누락' }),
     ApiResponse({ status: 401, description: '유효하지 않거나 만료된 Refresh Token' }),
   );
 }

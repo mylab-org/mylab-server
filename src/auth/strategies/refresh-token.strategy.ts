@@ -10,7 +10,7 @@ import { Request } from 'express';
 export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'refresh_token') {
   constructor(private authService: AuthService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
       ignoreExpiration: false,
       secretOrKey: JWT_REFRESH_SECRET as string,
       passReqToCallback: true,
@@ -18,8 +18,7 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'refresh_to
   }
 
   async validate(req: Request, payload: { sub: string }) {
-    const authHeader = req.headers.authorization;
-    const refreshToken = authHeader?.split(' ')[1];
+    const { refreshToken } = req.body as { refreshToken?: string };
 
     if (!refreshToken) {
       throw new UnauthorizedException(AUTH_ERROR.REFRESH_TOKEN_MISSING);

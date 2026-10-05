@@ -9,7 +9,11 @@ export class AccessTokenGuard extends AuthGuard('access_token') {
       throw new UnauthorizedException(AUTH_ERROR.ACCESS_TOKEN_EXPIRED);
     }
 
-    if (info?.name === 'JsonWebTokenError' || !user) {
+    if (info?.name === 'JsonWebTokenError') {
+      throw new UnauthorizedException(AUTH_ERROR.ACCESS_TOKEN_INVALID);
+    }
+
+    if (!user) {
       throw new UnauthorizedException(AUTH_ERROR.ACCESS_TOKEN_MISSING);
     }
 
