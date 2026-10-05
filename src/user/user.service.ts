@@ -23,14 +23,36 @@ export class UserService {
   async getProfile(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id: BigInt(id) },
-      select: this.userSelect,
+      select: {
+        ...this.userSelect,
+        lab_members: {
+          where: { left_at: null },
+          take: 1,
+          select: {
+            role: true,
+            labs: { select: { id: true, name: true } },
+          },
+        },
+      },
     });
 
     if (!user) {
       throw new CommonException(USER_ERROR.NOT_FOUND);
     }
 
-    return user;
+    const { lab_members, ...profile } = user;
+    const membership = lab_members[0];
+
+    return {
+      ...profile,
+      lab: membership
+        ? {
+            labId: Number(membership.labs.id),
+            labName: membership.labs.name,
+            role: membership.role,
+          }
+        : null,
+    };
   }
 
   async updateProfile(id: number, dto: UpdateUserRequestDto) {
