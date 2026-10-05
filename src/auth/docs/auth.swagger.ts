@@ -4,6 +4,7 @@ import { LoginResponseDto } from '../dto/response/login.response.dto.js';
 import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 import { TokenResponseDto } from '../dto/response/token.response.dto.js';
 import { RefreshRequestDto } from '../dto/request/refresh.request.dto.js';
+import { LogoutRequestDto } from '../dto/request/logout.request.dto.js';
 
 export function ApiRegister() {
   return applyDecorators(
@@ -72,8 +73,13 @@ export function ApiVerifyEmail() {
 export function ApiLogout() {
   return applyDecorators(
     ApiBearerAuth(),
-    ApiOperation({ summary: '로그아웃', description: '서버에서 Refresh Token을 파기합니다.' }),
+    ApiOperation({
+      summary: '로그아웃',
+      description: '현재 기기의 Refresh Token을 파기합니다. 다른 기기의 로그인은 유지됩니다.',
+    }),
+    ApiBody({ type: LogoutRequestDto }),
     ApiResponse({ status: 200, description: '로그아웃 성공', type: MessageResponseDto }),
+    ApiResponse({ status: 400, description: 'Refresh Token 누락' }),
     ApiResponse({ status: 401, description: '인증되지 않은 사용자 (토큰 없음/만료)' }),
   );
 }

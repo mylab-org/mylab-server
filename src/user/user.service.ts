@@ -113,13 +113,14 @@ export class UserService {
 
     const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
 
-    await this.prisma.users.update({
-      where: { id: BigInt(id) },
-      data: {
-        password: hashedPassword,
-        refresh_token: null, // 비밀번호 변경 시 모든 기기 로그아웃 처리
-      },
-    });
+    await this.prisma.$transaction([
+      this.prisma.users.update({
+        where: { id: BigInt(id) },
+        data: { password: hashedPassword },
+      }),
+      // 비밀번호 변경 시 모든 기기 로그아웃 처리
+      this.prisma.refresh_tokens.deleteMany({ where: { user_id: BigInt(id) } }),
+    ]);
 
     return { message: '비밀번호가 변경되었습니다' };
   }

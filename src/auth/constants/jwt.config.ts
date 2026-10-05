@@ -12,3 +12,6 @@ export const EXPIRES_IN = {
   JWT_ACCESS_TOKEN: '30m',
   JWT_REFRESH_TOKEN: '7d',
 } as const;
+
+/** JWT_REFRESH_TOKEN(7d)과 동일한 기간. refresh_tokens.expires_at 계산에 사용 */
+export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;

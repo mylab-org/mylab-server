@@ -8,6 +8,7 @@ import {
   Query,
   Request,
   UseGuards,
+  Headers,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service.js';
@@ -15,6 +16,7 @@ import { LoginRequestDto } from './dto/request/login.request.dto.js';
 import { RegisterRequestDto } from './dto/request/register.request.dto.js';
 import { ResendVerificationDto } from './dto/request/resend-verification.dto.js';
 import { RefreshRequestDto } from './dto/request/refresh.request.dto.js';
+import { LogoutRequestDto } from './dto/request/logout.request.dto.js';
 import { AccessTokenGuard } from './guards/access-token.guard.js';
 import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
 import {
@@ -40,15 +42,18 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiLogin()
-  async login(@Body() dto: LoginRequestDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginRequestDto, @Headers('user-agent') userAgent?: string) {
+    return this.authService.login(dto, userAgent);
   }
 
   @Post('logout')
   @UseGuards(AccessTokenGuard)
   @ApiLogout()
-  async logout(@Request() req: { user: { userId: string } }) {
-    return this.authService.logout(req.user.userId);
+  async logout(
+    @Request() req: { user: { userId: string } },
+    @Body() dto: LogoutRequestDto,
+  ) {
+    return this.authService.logout(req.user.userId, dto.refreshToken);
   }
 
   @Get('verify-email')
@@ -68,8 +73,9 @@ export class AuthController {
   @ApiRefresh()
   async refreshToken(
     @Request() req: { user: { userId: string } },
-    @Body() _dto: RefreshRequestDto,
+    @Body() dto: RefreshRequestDto,
+    @Headers('user-agent') userAgent?: string,
   ) {
-    return this.authService.refreshToken(req.user.userId);
+    return this.authService.refreshToken(req.user.userId, dto.refreshToken, userAgent);
   }
 }

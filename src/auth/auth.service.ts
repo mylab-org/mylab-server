@@ -7,7 +7,12 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as process from 'node:process';
-import { EXPIRES_IN, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from './constants/jwt.config.js';
+import {
+  EXPIRES_IN,
+  JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET,
+  REFRESH_TOKEN_TTL_MS,
+} from './constants/jwt.config.js';
 import { RegisterRequestDto } from './dto/request/register.request.dto.js';
 import { ResendVerificationDto } from './dto/request/resend-verification.dto.js';
 import { getEmailVerificationTemplate } from './templates/email-verification.template.js';
@@ -187,7 +192,7 @@ export class AuthService {
     return { message: '인증 메일이 재발송되었습니다.' };
   }
 
-  async login(dto: LoginRequestDto) {
+  async login(dto: LoginRequestDto, deviceInfo?: string) {
     const user = await this.prisma.users.findUnique({
       where: { email: dto.email },
       include: {
@@ -215,7 +220,7 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user.id.toString());
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    await this.saveRefreshToken(user.id, tokens.refreshToken, deviceInfo);
 
     const membership = user.lab_members[0];
 
@@ -237,16 +242,15 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string) {
-    await this.prisma.users.update({
-      where: { id: BigInt(userId) },
-      data: { refresh_token: null },
+  async logout(userId: string, refreshToken: string) {
+    await this.prisma.refresh_tokens.deleteMany({
+      where: { user_id: BigInt(userId), token_hash: this.hashRefreshToken(refreshToken) },
     });
 
     return { message: '로그아웃 되었습니다.' };
   }
 
-  async refreshToken(userId: string) {
+  async refreshToken(userId: string, currentRefreshToken: string, deviceInfo?: string) {
     const user = await this.prisma.users.findUnique({
       where: { id: BigInt(userId) },
       select: { id: true },
@@ -256,23 +260,27 @@ export class AuthService {
       throw new CommonException(AUTH_ERROR.USER_NOT_FOUND);
     }
 
+    await this.prisma.refresh_tokens.deleteMany({
+      where: { token_hash: this.hashRefreshToken(currentRefreshToken) },
+    });
+
     const tokens = await this.generateTokens(user.id.toString());
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    await this.saveRefreshToken(user.id, tokens.refreshToken, deviceInfo);
 
     return { ...tokens };
   }
 
   async validateRefreshToken(userId: string, refreshToken: string): Promise<boolean> {
-    const user = await this.prisma.users.findUnique({
-      where: { id: BigInt(userId) },
-      select: { refresh_token: true },
+    const stored = await this.prisma.refresh_tokens.findUnique({
+      where: { token_hash: this.hashRefreshToken(refreshToken) },
+      select: { user_id: true, expires_at: true },
     });
 
-    if (!user || !user.refresh_token) {
+    if (!stored || stored.user_id !== BigInt(userId)) {
       return false;
     }
 
-    return bcrypt.compare(refreshToken, user.refresh_token);
+    return stored.expires_at > new Date();
   }
 
   private async createAuthToken(userId: bigint, type: TokenType) {
@@ -312,19 +320,33 @@ export class AuthService {
       expiresIn: EXPIRES_IN.JWT_ACCESS_TOKEN,
     });
 
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: JWT_REFRESH_SECRET,
-      expiresIn: EXPIRES_IN.JWT_REFRESH_TOKEN,
-    });
+    const refreshToken = await this.jwtService.signAsync(
+      { ...payload, jti: crypto.randomUUID() },
+      {
+        secret: JWT_REFRESH_SECRET,
+        expiresIn: EXPIRES_IN.JWT_REFRESH_TOKEN,
+      },
+    );
 
     return { accessToken, refreshToken };
   }
 
-  private async saveRefreshToken(userId: bigint, refreshToken: string) {
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.prisma.users.update({
-      where: { id: userId },
-      data: { refresh_token: hashedRefreshToken },
+  private hashRefreshToken(refreshToken: string): string {
+    return crypto.createHash('sha256').update(refreshToken).digest('hex');
+  }
+
+  private async saveRefreshToken(userId: bigint, refreshToken: string, deviceInfo?: string) {
+    await this.prisma.refresh_tokens.create({
+      data: {
+        user_id: userId,
+        token_hash: this.hashRefreshToken(refreshToken),
+        device_info: deviceInfo,
+        expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+      },
+    });
+
+    await this.prisma.refresh_tokens.deleteMany({
+      where: { user_id: userId, expires_at: { lt: new Date() } },
     });
   }
 
