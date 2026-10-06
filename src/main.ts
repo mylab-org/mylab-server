@@ -8,10 +8,15 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor.
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
 
 async function bootstrap() {
+  const clientUrl = process.env.CLIENT_URL;
+  if (!clientUrl) {
+    throw new Error('CLIENT_URL 환경변수를 설정해주세요');
+  }
+
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:3000',
+    origin: clientUrl,
     credentials: true,
   });
 
@@ -30,6 +35,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(8080);
+  await app.listen(process.env.PORT ?? 8080);
 }
 bootstrap().catch(console.error);
