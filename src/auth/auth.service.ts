@@ -351,7 +351,7 @@ export class AuthService {
   }
 
   private async sendVerificationEmail(email: string, name: string, token: string) {
-    const verifyUrl = `${process.env.CLIENT_URL}/verify/email?token=${token}`;
+    const verifyUrl = `${process.env.CLIENT_URL}/email-validate?token=${token}`;
     try {
       await this.transporter.sendMail({
         from: `"MyLab" <${process.env.SMTP_USER}>`,
