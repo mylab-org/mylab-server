@@ -14,6 +14,7 @@ import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
 import { ChangeRoleRequestDto } from './dto/request/change-role.request.dto.js';
 import { USER_ERROR } from '../user/constants/user.error.js';
+import { DEFAULT_LAB_BOARD_CATEGORY } from './constants/lab-board.constant.js';
 
 type PrismaClient = PrismaService | Prisma.TransactionClient;
 
@@ -41,6 +42,14 @@ export class LabService {
           user_id: professorId,
           lab_id: lab.id,
           role: Role.PROFESSOR,
+        },
+      });
+
+      await tx.board_categories.create({
+        data: {
+          name: DEFAULT_LAB_BOARD_CATEGORY.name,
+          description: DEFAULT_LAB_BOARD_CATEGORY.description,
+          lab_id: lab.id,
         },
       });
 
