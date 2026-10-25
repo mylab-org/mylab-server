@@ -221,6 +221,7 @@ export class LabService {
     });
 
     return members.map((member) => ({
+      userId: Number(member.user_id),
       name: member.users.name,
       degree: member.users.degree,
       role: member.role,
