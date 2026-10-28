@@ -25,6 +25,8 @@ async function bootstrap() {
     .setDescription('MyLab API 문서')
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag('개인 업무 및 미팅', 'task')
+    .addTag('게시판', 'board')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
