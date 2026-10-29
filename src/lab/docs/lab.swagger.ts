@@ -117,7 +117,7 @@ export function ApiChangeRole() {
     ApiOperation({
       summary: '멤버 역할 변경',
       description:
-        '교수는 랩장/부랩장 임명 및 해임 가능. 랩장은 부랩장 임명 및 해임 가능. 랩장 1명, 부랩장 2명 제한.',
+        '교수는 랩장/부랩장 임명 및 해임 가능. 랩장은 부랩장 임명 및 해임 가능. 랩장 1명, 부랩장 2명 제한. 퇴소·탈퇴한 멤버는 인원 제한 집계에서 제외되며 역할 변경 대상도 될 수 없음.',
     }),
     ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
     ApiParam({ name: 'userId', description: '역할을 변경할 멤버 ID', type: Number }),

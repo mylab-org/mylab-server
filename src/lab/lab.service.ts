@@ -244,14 +244,14 @@ export class LabService {
     dto: ChangeRoleRequestDto,
   ): Promise<void> {
     const user = await this.prisma.lab_members.findFirst({
-      where: { user_id: BigInt(userId), lab_id: BigInt(labId) },
+      where: { user_id: BigInt(userId), lab_id: BigInt(labId), left_at: null },
     });
     if (!user) throw new CommonException(USER_ERROR.NOT_FOUND);
     if (user.role !== Role.PROFESSOR && user.role !== Role.LAB_LEADER)
       throw new CommonException(CHANGE_ROLE_ERROR.NO_PERMISSION);
 
     const targetUser = await this.prisma.lab_members.findFirst({
-      where: { user_id: BigInt(targetUserId), lab_id: user.lab_id },
+      where: { user_id: BigInt(targetUserId), lab_id: user.lab_id, left_at: null },
     });
     if (!targetUser) throw new CommonException(USER_ERROR.NOT_FOUND);
     if (targetUser.role === dto.role) return;
@@ -259,11 +259,11 @@ export class LabService {
       throw new CommonException(CHANGE_ROLE_ERROR.NO_PERMISSION);
 
     const labLeaderCount = await this.prisma.lab_members.count({
-      where: { lab_id: BigInt(labId), role: Role.LAB_LEADER },
+      where: { lab_id: BigInt(labId), role: Role.LAB_LEADER, left_at: null },
     });
 
     const subLeaderCount = await this.prisma.lab_members.count({
-      where: { lab_id: BigInt(labId), role: Role.SUB_LEADER },
+      where: { lab_id: BigInt(labId), role: Role.SUB_LEADER, left_at: null },
     });
 
     switch (user.role) {
