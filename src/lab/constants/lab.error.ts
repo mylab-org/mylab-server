@@ -16,6 +16,10 @@ export const LAB_ERROR_CODES = {
   NO_PERMISSION_TO_CHANGE_ROLE: 'L101',
   MAX_LAB_LEADER_EXCEEDED: 'L102',
   MAX_SUB_LEADER_EXCEEDED: 'L103',
+
+  PROFESSOR_CANNOT_LEAVE: 'L201',
+  NO_PERMISSION_TO_REMOVE_MEMBER: 'L202',
+  CANNOT_REMOVE_SELF: 'L203',
 } as const;
 
 export const LAB_ERRORS = {
@@ -68,6 +72,21 @@ export const LAB_ERRORS = {
     code: LAB_ERROR_CODES.CODE_EXPIRED,
     message: '만료된 초대 코드.',
     status: HttpStatus.GONE,
+  },
+  PROFESSOR_CANNOT_LEAVE: {
+    code: LAB_ERROR_CODES.PROFESSOR_CANNOT_LEAVE,
+    message: '교수는 연구실을 나갈 수 없습니다.',
+    status: HttpStatus.FORBIDDEN,
+  },
+  NO_PERMISSION_TO_REMOVE_MEMBER: {
+    code: LAB_ERROR_CODES.NO_PERMISSION_TO_REMOVE_MEMBER,
+    message: '해당 멤버를 내보낼 권한이 없습니다.',
+    status: HttpStatus.FORBIDDEN,
+  },
+  CANNOT_REMOVE_SELF: {
+    code: LAB_ERROR_CODES.CANNOT_REMOVE_SELF,
+    message: '본인은 내보낼 수 없습니다. 연구실 나가기를 이용해주세요.',
+    status: HttpStatus.BAD_REQUEST,
   },
 };
 

@@ -27,6 +27,8 @@ import {
   ApiRevokeInviteCode,
   ApiGetMembers,
   ApiChangeRole,
+  ApiLeaveLab,
+  ApiRemoveMember,
 } from './docs/lab.swagger.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
@@ -108,5 +110,26 @@ export class LabController {
     @Body() dto: ChangeRoleRequestDto,
   ): Promise<void> {
     return this.labService.changeRole(labId, targetUserId, req.user.userId, dto);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Delete(':labId/members/me')
+  @ApiLeaveLab()
+  async leaveLab(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+  ): Promise<{ message: string }> {
+    return this.labService.leaveLab(req.user.userId, labId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Delete(':labId/members/:userId')
+  @ApiRemoveMember()
+  async removeMember(
+    @Param('labId', ParseIntPipe) labId: number,
+    @Param('userId', ParseIntPipe) targetUserId: number,
+    @Request() req: { user: { userId: number } },
+  ): Promise<{ message: string }> {
+    return this.labService.removeMember(labId, targetUserId, req.user.userId);
   }
 }

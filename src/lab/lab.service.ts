@@ -198,8 +198,12 @@ export class LabService {
       this.chkInviteCodeStatus(inviteCode);
 
       // lab_members 추가
-      const membership = await tx.lab_members.create({
-        data: {
+      const membership = await tx.lab_members.upsert({
+        where: {
+          user_id_lab_id: { user_id: BigInt(userId), lab_id: inviteCode.lab_id },
+        },
+        update: { left_at: null, role: Role.MEMBER, joined_at: new Date() },
+        create: {
           user_id: BigInt(userId),
           lab_id: inviteCode.lab_id,
         },
@@ -296,6 +300,55 @@ export class LabService {
       },
       data: { role: dto.role },
     });
+  }
+
+  async leaveLab(userId: number, labId: number): Promise<{ message: string }> {
+    const member = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(userId), lab_id: BigInt(labId), left_at: null },
+    });
+    if (!member) throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
+    if (member.role === Role.PROFESSOR)
+      throw new CommonException(LAB_ERRORS.PROFESSOR_CANNOT_LEAVE);
+
+    await this.prisma.lab_members.update({
+      where: { id: member.id },
+      data: { left_at: new Date() },
+    });
+
+    return { message: '연구실에서 나갔습니다.' };
+  }
+
+  async removeMember(
+    labId: number,
+    targetUserId: number,
+    userId: number,
+  ): Promise<{ message: string }> {
+    if (targetUserId === userId) throw new CommonException(LAB_ERRORS.CANNOT_REMOVE_SELF);
+
+    const requester = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(userId), lab_id: BigInt(labId), left_at: null },
+    });
+    if (!requester) throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
+
+    const target = await this.prisma.lab_members.findFirst({
+      where: { user_id: BigInt(targetUserId), lab_id: BigInt(labId), left_at: null },
+    });
+    if (!target) throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
+
+    const canRemove =
+      requester.role === Role.PROFESSOR
+        ? target.role !== Role.PROFESSOR
+        : requester.role === Role.LAB_LEADER &&
+          (target.role === Role.SUB_LEADER || target.role === Role.MEMBER);
+
+    if (!canRemove) throw new CommonException(LAB_ERRORS.NO_PERMISSION_TO_REMOVE_MEMBER);
+
+    await this.prisma.lab_members.update({
+      where: { id: target.id },
+      data: { left_at: new Date() },
+    });
+
+    return { message: '멤버를 내보냈습니다.' };
   }
   /* ##### 내장 함수 ##### */
 
