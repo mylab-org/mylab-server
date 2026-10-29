@@ -25,4 +25,10 @@ export const USER_ERROR: Record<string, ErrorInfo> = {
     message: '학생은 교수로 변경할 수 없습니다',
     status: HttpStatus.BAD_REQUEST,
   },
+
+  LAB_HAS_REMAINING_MEMBERS: {
+    code: 'U401',
+    message: '연구실에 다른 멤버가 남아있어 탈퇴할 수 없습니다',
+    status: HttpStatus.CONFLICT,
+  },
 } as const;

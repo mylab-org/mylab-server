@@ -3,12 +3,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
+import { WithdrawUserRequestDto } from './dto/request/withdraw-user.request.dto.js';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import {
   ApiChangePassword,
-  ApiDeleteUser,
   ApiGetProfile,
   ApiUpdateProfile,
+  ApiWithdrawUser,
 } from './docs/user.swagger.js';
 
 @ApiTags('Users')
@@ -35,9 +36,12 @@ export class UserController {
 
   @Delete('me')
   @UseGuards(AccessTokenGuard)
-  @ApiDeleteUser()
-  async deleteUser(@Request() req: { user: { userId: number } }) {
-    return this.userService.deleteUser(req.user.userId);
+  @ApiWithdrawUser()
+  async withdrawUser(
+    @Request() req: { user: { userId: number } },
+    @Body() dto: WithdrawUserRequestDto,
+  ) {
+    return this.userService.withdrawUser(req.user.userId, dto);
   }
 
   @Patch('me/password')

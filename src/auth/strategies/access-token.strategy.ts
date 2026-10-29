@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UserStatus } from '@prisma/client';
 import { JWT_ACCESS_SECRET } from '../constants/jwt.config.js';
+import { AUTH_ERROR } from '../constants/auth.error.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 
 @Injectable()
 export class AccessTokenStrategy extends PassportStrategy(Strategy, 'access_token') {
-  constructor() {
+  constructor(private prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -13,8 +16,18 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'access_toke
     });
   }
 
-  validate(payload: { sub: string }) {
-    // JWT의 sub는 문자열이므로, 숫자로 변환해 req.user.userId 타입(number)과 실제 값을 맞춥니다.
-    return { userId: Number(payload.sub) };
+  async validate(payload: { sub: string }) {
+    const userId = Number(payload.sub);
+
+    const user = await this.prisma.users.findUnique({
+      where: { id: BigInt(userId) },
+      select: { status: true },
+    });
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException(AUTH_ERROR.WITHDRAWN_ACCOUNT);
+    }
+
+    return { userId };
   }
 }

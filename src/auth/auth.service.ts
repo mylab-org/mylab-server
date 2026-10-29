@@ -17,7 +17,7 @@ import { RegisterRequestDto } from './dto/request/register.request.dto.js';
 import { ResendVerificationDto } from './dto/request/resend-verification.dto.js';
 import { getEmailVerificationTemplate } from './templates/email-verification.template.js';
 import nodemailer from 'nodemailer';
-import { Prisma, TokenType } from '@prisma/client';
+import { Prisma, TokenType, UserStatus } from '@prisma/client';
 import { RateLimitService } from './rate-limit.service.js';
 
 @Injectable()
@@ -215,6 +215,10 @@ export class AuthService {
       throw new CommonException(AUTH_ERROR.INVALID_CREDENTIALS);
     }
 
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new CommonException(AUTH_ERROR.WITHDRAWN_ACCOUNT);
+    }
+
     if (!user.is_email_verified) {
       throw new CommonException(AUTH_ERROR.EMAIL_NOT_VERIFIED);
     }
@@ -253,11 +257,15 @@ export class AuthService {
   async refreshToken(userId: string, currentRefreshToken: string, deviceInfo?: string) {
     const user = await this.prisma.users.findUnique({
       where: { id: BigInt(userId) },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!user) {
       throw new CommonException(AUTH_ERROR.USER_NOT_FOUND);
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new CommonException(AUTH_ERROR.WITHDRAWN_ACCOUNT);
     }
 
     await this.prisma.refresh_tokens.deleteMany({
