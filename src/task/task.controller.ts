@@ -15,6 +15,7 @@ import { User } from '../common/decoraters/user.decorator.js';
 import {
   ApiCreateTask,
   ApiDeleteTask,
+  ApiGetLabWorkboard,
   ApiListTasks,
   ApiUpdateTask,
   ApiUpdateTaskStatus,
@@ -34,6 +35,16 @@ export class TaskController {
   @ApiListTasks()
   async listTasks(@User('userId') userId: number) {
     return this.taskService.listTasks(userId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Get('lab/:labId')
+  @ApiGetLabWorkboard()
+  async getLabWorkboard(
+    @User('userId') userId: number,
+    @Param('labId', ParseIntPipe) labId: number,
+  ) {
+    return this.taskService.getLabWorkboard(userId, labId);
   }
 
   @UseGuards(AccessTokenGuard)

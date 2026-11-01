@@ -4,6 +4,7 @@ import { CreateTaskRequestDto } from '../dto/request/create-task.request.dto.js'
 import { UpdateTaskRequestDto } from '../dto/request/update-task.request.dto.js';
 import { UpdateTaskStatusRequestDto } from '../dto/request/update-task-status.request.dto.js';
 import { TaskResponseDto } from '../dto/response/task.response.dto.js';
+import { WorkboardMemberResponseDto } from '../dto/response/workboard-member.response.dto.js';
 
 const taskIdParam = () => ApiParam({ name: 'taskId', description: '업무 ID', type: Number });
 
@@ -16,6 +17,20 @@ export const ApiListTasks = () =>
     }),
     ApiResponse({ status: 200, description: '조회 성공', type: [TaskResponseDto] }),
     ApiResponse({ status: 401, description: '인증 실패' }),
+  );
+
+export const ApiGetLabWorkboard = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 전체 업무 보드 조회',
+      description:
+        '연구실 멤버별 논문과 개인 업무/미팅을 조회합니다. 멤버는 교수 → 박사 → 석사 → 학사 순으로 정렬됩니다.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiResponse({ status: 200, description: '조회 성공', type: [WorkboardMemberResponseDto] }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '연구실 멤버가 아님' }),
   );
 
 export const ApiCreateTask = () =>
