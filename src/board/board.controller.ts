@@ -27,7 +27,9 @@ import { CreateUpdateBoardRequest } from './dto/request/create-update-board.requ
 import { plainToInstance } from 'class-transformer';
 import { GetBoardResponseDto, PostItemDto } from './dto/response/get-board.response.dto.js';
 import { User } from '../common/decoraters/user.decorator.js';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('게시판')
 @Controller('board')
 export class BoardController {
   constructor(private readonly boardService: BoardService) {}

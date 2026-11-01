@@ -7,5 +7,6 @@ import { PaperService } from './paper.service.js';
   imports: [PrismaModule],
   controllers: [PaperController],
   providers: [PaperService],
+  exports: [PaperService],
 })
 export class PaperModule {}

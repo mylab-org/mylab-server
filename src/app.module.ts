@@ -10,6 +10,7 @@ import { BoardModule } from './board/board.module.js';
 import { CommentModule } from './comment/comment.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
 import { PaperModule } from './paper/paper.module.js';
+import { TaskModule } from './task/task.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaperModule } from './paper/paper.module.js';
     CommentModule,
     CalendarModule,
     PaperModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],
