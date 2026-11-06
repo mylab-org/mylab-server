@@ -13,6 +13,11 @@ import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
 import { ChangeRoleRequestDto } from './dto/request/change-role.request.dto.js';
+import { UpdateLabRequestDto } from './dto/request/update-lab.request.dto.js';
+import { UpdateLabResponseDto } from './dto/response/update-lab.response.dto.js';
+import { GetLabResponseDto } from './dto/response/get-lab.response.dto.js';
+import { CreateLabLinkRequestDto } from './dto/request/create-lab-link.request.dto.js';
+import { LabLinkResponseDto } from './dto/response/lab-link.response.dto.js';
 import { USER_ERROR } from '../user/constants/user.error.js';
 
 type PrismaClient = PrismaService | Prisma.TransactionClient;
@@ -204,6 +209,128 @@ export class LabService {
     });
   }
 
+  // 연구실 정보 조회
+  async getLab(userId: number, labId: number): Promise<GetLabResponseDto> {
+    await this.chkLabExist(labId);
+    await this.chkUserInLab(userId, labId);
+
+    const lab = await this.prisma.labs.findFirst({
+      where: { id: BigInt(labId), deleted_at: null },
+    });
+
+    if (!lab) {
+      throw new CommonException(LAB_ERRORS.LAB_NOT_FOUND);
+    }
+
+    return {
+      labId: Number(lab.id),
+      labName: lab.name,
+      description: lab.description,
+      hashtags: lab.hashtags,
+      universityName: lab.university_name,
+      departmentName: lab.department_name,
+    };
+  }
+
+  // 연구실 정보 수정
+  async updateLab(
+    userId: number,
+    labId: number,
+    dto: UpdateLabRequestDto,
+  ): Promise<UpdateLabResponseDto> {
+    await this.chkLabExist(labId);
+    await this.chkLabUpdatePermission(userId, labId);
+
+    const lab = await this.prisma.labs.update({
+      where: { id: BigInt(labId) },
+      data: {
+        ...(dto.labName !== undefined && { name: dto.labName }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.hashtags !== undefined && { hashtags: dto.hashtags }),
+        updated_at: new Date(),
+      },
+    });
+
+    return {
+      labId: Number(lab.id),
+      labName: lab.name,
+      description: lab.description,
+      hashtags: lab.hashtags,
+      universityName: lab.university_name,
+      departmentName: lab.department_name,
+    };
+  }
+
+  // 연구실 삭제 (소프트 삭제)
+  async deleteLab(userId: number, labId: number): Promise<void> {
+    await this.chkLabExist(labId);
+    await this.chkLabDeletePermission(userId, labId);
+
+    await this.prisma.labs.update({
+      where: { id: BigInt(labId) },
+      data: { deleted_at: new Date(), updated_at: new Date() },
+    });
+  }
+
+  // 연구실 링크 목록 조회
+  async getLabLinks(userId: number, labId: number): Promise<LabLinkResponseDto[]> {
+    await this.chkLabExist(labId);
+    await this.chkUserInLab(userId, labId);
+
+    const links = await this.prisma.lab_links.findMany({
+      where: { lab_id: BigInt(labId) },
+      orderBy: { created_at: 'asc' },
+    });
+
+    return links.map((link) => ({
+      linkId: Number(link.id),
+      name: link.name,
+      url: link.url,
+    }));
+  }
+
+  // 연구실 링크 생성
+  async createLabLink(
+    userId: number,
+    labId: number,
+    dto: CreateLabLinkRequestDto,
+  ): Promise<LabLinkResponseDto> {
+    await this.chkLabExist(labId);
+    await this.chkLabUpdatePermission(userId, labId);
+
+    const link = await this.prisma.lab_links.create({
+      data: {
+        lab_id: BigInt(labId),
+        name: dto.name,
+        url: dto.url,
+      },
+    });
+
+    return {
+      linkId: Number(link.id),
+      name: link.name,
+      url: link.url,
+    };
+  }
+
+  // 연구실 링크 삭제
+  async deleteLabLink(userId: number, labId: number, linkId: number): Promise<void> {
+    await this.chkLabExist(labId);
+    await this.chkLabUpdatePermission(userId, labId);
+
+    const link = await this.prisma.lab_links.findFirst({
+      where: { id: BigInt(linkId), lab_id: BigInt(labId) },
+    });
+
+    if (!link) {
+      throw new CommonException(LAB_ERRORS.LINK_NOT_FOUND);
+    }
+
+    await this.prisma.lab_links.delete({
+      where: { id: BigInt(linkId) },
+    });
+  }
+
   // 연구실 멤버 조회
   async getMembers(userId: number, labId: number): Promise<GetMembersResponseDto[]> {
     await this.chkUserInLab(userId, labId);
@@ -333,7 +460,7 @@ export class LabService {
     }
   }
 
-  // 유저 권한 체크
+  // 유저 권한 체크 (교수/랩장)
   private async chkUserPermission(userId: number, labId: number): Promise<void> {
     const chkMember = await this.prisma.lab_members.findFirst({
       where: { lab_id: BigInt(labId), user_id: BigInt(userId), left_at: null },
@@ -349,10 +476,44 @@ export class LabService {
     }
   }
 
-  // 연구실 존재 확인
+  // 연구실 정보 수정/링크 관리 권한 체크 (교수/랩장/부랩장)
+  private async chkLabUpdatePermission(userId: number, labId: number): Promise<void> {
+    const chkMember = await this.prisma.lab_members.findFirst({
+      where: { lab_id: BigInt(labId), user_id: BigInt(userId), left_at: null },
+    });
+
+    if (!chkMember) {
+      throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
+    }
+
+    if (
+      chkMember.role !== Role.PROFESSOR &&
+      chkMember.role !== Role.LAB_LEADER &&
+      chkMember.role !== Role.SUB_LEADER
+    ) {
+      throw new CommonException(LAB_ERRORS.PERMISSION_DENIED);
+    }
+  }
+
+  // 연구실 삭제 권한 체크 (교수만)
+  private async chkLabDeletePermission(userId: number, labId: number): Promise<void> {
+    const chkMember = await this.prisma.lab_members.findFirst({
+      where: { lab_id: BigInt(labId), user_id: BigInt(userId), left_at: null },
+    });
+
+    if (!chkMember) {
+      throw new CommonException(LAB_ERRORS.USER_NOT_FOUND_IN_LAB);
+    }
+
+    if (chkMember.role !== Role.PROFESSOR) {
+      throw new CommonException(LAB_ERRORS.PERMISSION_DENIED);
+    }
+  }
+
+  // 연구실 존재 확인 (삭제되지 않은 연구실만)
   private async chkLabExist(labId: number): Promise<void> {
-    const lab = await this.prisma.labs.findUnique({
-      where: { id: BigInt(labId) },
+    const lab = await this.prisma.labs.findFirst({
+      where: { id: BigInt(labId), deleted_at: null },
     });
 
     if (!lab) {

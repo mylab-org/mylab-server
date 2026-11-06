@@ -8,6 +8,11 @@ import { CreateInviteCodeRequestDto } from '../dto/request/create-invite-code.re
 import { JoinLabRequestDto } from '../dto/request/join-lab.request.dto.js';
 import { GetMembersResponseDto } from '../dto/response/get-members.dto.js';
 import { ChangeRoleRequestDto } from '../dto/request/change-role.request.dto.js';
+import { UpdateLabRequestDto } from '../dto/request/update-lab.request.dto.js';
+import { UpdateLabResponseDto } from '../dto/response/update-lab.response.dto.js';
+import { GetLabResponseDto } from '../dto/response/get-lab.response.dto.js';
+import { CreateLabLinkRequestDto } from '../dto/request/create-lab-link.request.dto.js';
+import { LabLinkResponseDto } from '../dto/response/lab-link.response.dto.js';
 
 export function ApiCreateLab() {
   return applyDecorators(
@@ -94,6 +99,116 @@ export function ApiJoinLab() {
     ApiResponse({ status: 404, description: '존재하지 않는 초대 코드' }),
     ApiResponse({ status: 409, description: '이미 연구실에 소속된 사용자' }),
     ApiResponse({ status: 410, description: '만료된 초대 코드 / 비활성화된 초대 코드' }),
+  );
+}
+
+export function ApiGetLab() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 정보 조회',
+      description: '연구실 이름, 소개, 해시태그, 학교, 학과를 조회. 소속 멤버만 가능.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiResponse({ status: 200, description: '조회 성공', type: GetLabResponseDto }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 연구실에 소속되지 않은 사용자',
+    }),
+  );
+}
+
+export function ApiUpdateLab() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 정보 수정',
+      description:
+        '연구실 이름, 소개, 해시태그를 수정. 교수/랩장/부랩장만 가능. 해시태그는 # 없이 최대 5개, 각 20자.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiBody({ type: UpdateLabRequestDto }),
+    ApiResponse({ status: 200, description: '수정 성공', type: UpdateLabResponseDto }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '권한 없음 (교수/랩장/부랩장만 가능)' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 연구실에 소속되지 않은 사용자',
+    }),
+  );
+}
+
+export function ApiDeleteLab() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 삭제',
+      description: '연구실 소프트 삭제. 교수만 가능.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiResponse({ status: 204, description: '삭제 성공' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '권한 없음 (교수만 가능)' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 연구실에 소속되지 않은 사용자',
+    }),
+  );
+}
+
+export function ApiGetLabLinks() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 링크 목록 조회',
+      description: '연구실 관리 링크 목록 조회. 소속 멤버만 가능.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiResponse({ status: 200, description: '조회 성공', type: [LabLinkResponseDto] }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 연구실에 소속되지 않은 사용자',
+    }),
+  );
+}
+
+export function ApiCreateLabLink() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 링크 생성',
+      description: '연구실 관리 링크 생성. 교수/랩장/부랩장만 가능. 이름은 최대 20자.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiBody({ type: CreateLabLinkRequestDto }),
+    ApiResponse({ status: 201, description: '생성 성공', type: LabLinkResponseDto }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '권한 없음 (교수/랩장/부랩장만 가능)' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 연구실에 소속되지 않은 사용자',
+    }),
+  );
+}
+
+export function ApiDeleteLabLink() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 링크 삭제',
+      description: '연구실 관리 링크 삭제. 교수/랩장/부랩장만 가능.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiParam({ name: 'linkId', description: '링크 ID', type: Number }),
+    ApiResponse({ status: 204, description: '삭제 성공' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '권한 없음 (교수/랩장/부랩장만 가능)' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 링크 / 연구실에 소속되지 않은 사용자',
+    }),
   );
 }
 

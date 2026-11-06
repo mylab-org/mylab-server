@@ -12,6 +12,7 @@ export const LAB_ERROR_CODES = {
   CODE_NOT_FOUND: 'L008',
   CODE_DEACTIVATED: 'L009',
   CODE_EXPIRED: 'L010',
+  LINK_NOT_FOUND: 'L011',
 
   NO_PERMISSION_TO_CHANGE_ROLE: 'L101',
   MAX_LAB_LEADER_EXCEEDED: 'L102',
@@ -68,6 +69,11 @@ export const LAB_ERRORS = {
     code: LAB_ERROR_CODES.CODE_EXPIRED,
     message: '만료된 초대 코드.',
     status: HttpStatus.GONE,
+  },
+  LINK_NOT_FOUND: {
+    code: LAB_ERROR_CODES.LINK_NOT_FOUND,
+    message: '존재하지 않는 링크.',
+    status: HttpStatus.NOT_FOUND,
   },
 };
 
