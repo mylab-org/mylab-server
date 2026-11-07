@@ -3,8 +3,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto.js';
 import { CommonException } from '../common/exceptions/common.exception.js';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { UserStatus } from '@prisma/client';
 import { USER_ERROR } from './constants/user.error.js';
+import { WITHDRAWN_USER_NAME } from './constants/user.constant.js';
+import { LAB_STATUS } from '../lab/constants/lab-status.constant.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
+import { WithdrawUserRequestDto } from './dto/request/withdraw-user.request.dto.js';
 
 @Injectable()
 export class UserService {
@@ -81,17 +86,77 @@ export class UserService {
     });
   }
 
-  async deleteUser(id: number) {
+  async withdrawUser(id: number, dto: WithdrawUserRequestDto) {
+    const userId = BigInt(id);
+
     const user = await this.prisma.users.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: userId },
+      select: { id: true, email: true, password: true, status: true },
     });
 
-    if (!user) {
+    if (!user || user.status === UserStatus.WITHDRAWN) {
       throw new CommonException(USER_ERROR.NOT_FOUND);
     }
 
-    await this.prisma.users.delete({
-      where: { id: BigInt(id) },
+    const isMatch = await bcrypt.compare(dto.password, user.password);
+    if (!isMatch) {
+      throw new CommonException(USER_ERROR.PASSWORD_NOT_MATCHED);
+    }
+
+    const ownedLabs = await this.prisma.labs.findMany({
+      where: { professor_id: userId },
+      select: { id: true },
+    });
+    const ownedLabIds = ownedLabs.map((lab) => lab.id);
+
+    if (ownedLabIds.length > 0) {
+      const remainingMemberCount = await this.prisma.lab_members.count({
+        where: {
+          lab_id: { in: ownedLabIds },
+          user_id: { not: userId },
+          left_at: null,
+        },
+      });
+
+      if (remainingMemberCount > 0) {
+        throw new CommonException(USER_ERROR.LAB_HAS_REMAINING_MEMBERS);
+      }
+    }
+
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.users.update({
+        where: { id: userId },
+        data: {
+          status: UserStatus.WITHDRAWN,
+          deleted_at: now,
+          email: `deleted_${id}_${user.email}`,
+          name: WITHDRAWN_USER_NAME,
+          password: crypto.randomBytes(32).toString('hex'),
+        },
+      });
+
+      await tx.refresh_tokens.deleteMany({ where: { user_id: userId } });
+      await tx.auth_tokens.deleteMany({ where: { user_id: userId } });
+      await tx.device_tokens.deleteMany({ where: { user_id: userId } });
+
+      await tx.lab_members.updateMany({
+        where: { user_id: userId, left_at: null },
+        data: { left_at: now },
+      });
+
+      if (ownedLabIds.length > 0) {
+        await tx.labs.updateMany({
+          where: { id: { in: ownedLabIds } },
+          data: { status: LAB_STATUS.CLOSED },
+        });
+
+        await tx.invite_codes.updateMany({
+          where: { lab_id: { in: ownedLabIds }, is_active: true },
+          data: { is_active: false },
+        });
+      }
     });
 
     return { message: '회원 탈퇴가 완료되었습니다' };

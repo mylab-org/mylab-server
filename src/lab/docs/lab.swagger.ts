@@ -8,6 +8,7 @@ import { CreateInviteCodeRequestDto } from '../dto/request/create-invite-code.re
 import { JoinLabRequestDto } from '../dto/request/join-lab.request.dto.js';
 import { GetMembersResponseDto } from '../dto/response/get-members.dto.js';
 import { ChangeRoleRequestDto } from '../dto/request/change-role.request.dto.js';
+import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 
 export function ApiCreateLab() {
   return applyDecorators(
@@ -117,7 +118,7 @@ export function ApiChangeRole() {
     ApiOperation({
       summary: '멤버 역할 변경',
       description:
-        '교수는 랩장/부랩장 임명 및 해임 가능. 랩장은 부랩장 임명 및 해임 가능. 랩장 1명, 부랩장 2명 제한.',
+        '교수는 랩장/부랩장 임명 및 해임 가능. 랩장은 부랩장 임명 및 해임 가능. 랩장 1명, 부랩장 2명 제한. 퇴소·탈퇴한 멤버는 인원 제한 집계에서 제외되며 역할 변경 대상도 될 수 없음.',
     }),
     ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
     ApiParam({ name: 'userId', description: '역할을 변경할 멤버 ID', type: Number }),
@@ -128,5 +129,39 @@ export function ApiChangeRole() {
     ApiResponse({ status: 403, description: '권한 없음 (교수/랩장만 가능)' }),
     ApiResponse({ status: 404, description: '존재하지 않는 사용자' }),
     ApiResponse({ status: 409, description: '랩장 1명 초과 / 부랩장 2명 초과' }),
+  );
+}
+
+export function ApiLeaveLab() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '연구실 나가기',
+      description:
+        '본인이 연구실에서 나감. 작성한 게시글·댓글과 논문 참여 이력은 보존됨. 랩장/부랩장 역할은 위임되지 않음. 교수는 나갈 수 없음(회원 탈퇴 이용). 같은 연구실에 다시 가입하면 일반 멤버로 재입장.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiResponse({ status: 200, description: '나가기 성공', type: MessageResponseDto }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '교수는 나갈 수 없음' }),
+    ApiResponse({ status: 404, description: '연구실에 소속되지 않은 사용자' }),
+  );
+}
+
+export function ApiRemoveMember() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '멤버 내보내기',
+      description:
+        '교수는 랩장·부랩장·멤버를, 랩장은 부랩장·멤버를 내보낼 수 있음. 부랩장·멤버는 권한 없음. 교수는 내보낼 수 없음. 본인은 내보낼 수 없음(연구실 나가기 이용). 내보낸 멤버의 게시글·댓글과 논문 참여 이력은 보존됨. 활성 초대코드는 유지되므로 재가입을 막으려면 초대코드를 폐기해야 함.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 ID', type: Number }),
+    ApiParam({ name: 'userId', description: '내보낼 멤버의 유저 ID', type: Number }),
+    ApiResponse({ status: 200, description: '내보내기 성공', type: MessageResponseDto }),
+    ApiResponse({ status: 400, description: '본인을 내보내려고 함' }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({ status: 403, description: '권한 없음' }),
+    ApiResponse({ status: 404, description: '연구실에 소속되지 않은 사용자' }),
   );
 }

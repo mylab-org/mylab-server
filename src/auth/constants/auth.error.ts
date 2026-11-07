@@ -17,6 +17,7 @@ export const AUTH_ERROR_CODES = {
   TOO_MANY_REQUESTS: 'A013',
   DAILY_LIMIT_EXCEEDED: 'A014',
   EMAIL_SEND_FAILED: 'A015',
+  WITHDRAWN_ACCOUNT: 'A016',
 } as const;
 
 export const AUTH_ERROR: Record<string, ErrorInfo> = {
@@ -94,5 +95,10 @@ export const AUTH_ERROR: Record<string, ErrorInfo> = {
     code: AUTH_ERROR_CODES.EMAIL_SEND_FAILED,
     message: '이메일 발송 실패. 잠시 후 다시 시도해주세요',
     status: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  WITHDRAWN_ACCOUNT: {
+    code: AUTH_ERROR_CODES.WITHDRAWN_ACCOUNT,
+    message: '탈퇴한 계정입니다',
+    status: HttpStatus.UNAUTHORIZED,
   },
 } as const;
