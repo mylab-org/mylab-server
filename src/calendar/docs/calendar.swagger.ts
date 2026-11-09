@@ -127,3 +127,41 @@ export function ApiCalendarCancelOccurrence() {
     }),
   );
 }
+
+export function ApiCalendarGetRangeSchedule() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '기간별 일정 목록 조회',
+      description:
+        'from 이상 to 미만 기간의 일정을 시작 일시순으로 조회 (최대 42일). 반복 일정은 발생일마다 펼쳐서 반환하고, 여러 날에 걸친 일정은 기간과 겹치면 포함. 응답 형식은 월간 조회와 동일. 메인 화면 "이번 주 일정"은 from=이번 주 일요일 00:00, to=다음 주 일요일 00:00 (타임존 포함)으로 호출.',
+    }),
+    ApiParam({ name: 'labId', description: '연구실 Id', type: Number }),
+    ApiQuery({
+      name: 'from',
+      description: '조회 시작 일시 (포함)',
+      type: String,
+      example: '2026-11-08T00:00:00.000+09:00',
+    }),
+    ApiQuery({
+      name: 'to',
+      description: '조회 종료 일시 (미포함)',
+      type: String,
+      example: '2026-11-15T00:00:00.000+09:00',
+    }),
+    ApiResponse({
+      status: 200,
+      description: '조회 성공',
+      type: [GetMonthlyScheduleResponseDto],
+    }),
+    ApiResponse({
+      status: 400,
+      description: '날짜 형식 오류 / 조회 기간 오류 (to <= from, 42일 초과)',
+    }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+    ApiResponse({
+      status: 404,
+      description: '존재하지 않는 연구실 / 연구실에 존재하지 않는 사용자',
+    }),
+  );
+}

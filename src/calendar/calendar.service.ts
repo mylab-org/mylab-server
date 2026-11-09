@@ -8,6 +8,9 @@ import { CommonException } from '../common/exceptions/common.exception.js';
 import { CreateScheduleResponseDto } from './dto/response/create-schedule.response.dto.js';
 import { GetMonthlyScheduleResponseDto } from './dto/response/get-monthly-schedule.response.dto.js';
 import { UpdateScheduleRequestDto } from './dto/request/update-schedule.request.dto.js';
+import { GetRangeScheduleRequestDto } from './dto/request/get-range-schedule.request.dto.js';
+
+const MAX_RANGE_DAYS = 42;
 
 @Injectable()
 export class CalendarService {
@@ -81,44 +84,23 @@ export class CalendarService {
     const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
     const nextMonthStart = new Date(Date.UTC(year, month, 1, 0, 0, 0));
 
-    const schedules = await this.prisma.schedules.findMany({
-      where: {
-        lab_id: BigInt(labId),
-        OR: [
-          { start_at: { gte: monthStart, lt: nextMonthStart } },
-          { recurrence_type: { not: RecurrenceType.NONE }, start_at: { lt: nextMonthStart } },
-        ],
-      },
-      select: {
-        id: true,
-        schedule_type: true,
-        recurrence_type: true,
-        title: true,
-        start_at: true,
-        end_at: true,
-        location: true,
-        schedule_participants: { select: { lab_member_id: true } },
-        scheduleExceptions: {
-          where: { occurrence_at: { gte: monthStart, lt: nextMonthStart } },
-          select: { occurrence_at: true },
-        },
-      },
-      orderBy: { start_at: 'asc' },
-    });
+    return this.findOccurrencesInRange(labId, monthStart, nextMonthStart);
+  }
 
-    return schedules.flatMap((schedule) => {
-      const cancelledAt = new Set(
-        schedule.scheduleExceptions.map((e) => e.occurrence_at.getTime()),
-      );
-      return this.expandOccurrences(schedule, monthStart, nextMonthStart).map((occurrence) => ({
-        ...this.toScheduleResponse(
-          schedule,
-          occurrence,
-          schedule.schedule_participants.map((p) => Number(p.lab_member_id)),
-        ),
-        is_cancelled: cancelledAt.has(occurrence.start_at.getTime()),
-      }));
-    });
+  async getRangeSchedule(
+    userId: number,
+    labId: number,
+    query: GetRangeScheduleRequestDto,
+  ): Promise<GetMonthlyScheduleResponseDto[]> {
+    await this.chkUserAccessLab(userId, labId);
+
+    const from = new Date(query.from);
+    const to = new Date(query.to);
+    if (to <= from || to.getTime() - from.getTime() > MAX_RANGE_DAYS * 86_400_000) {
+      throw new CommonException(CALENDAR_ERRORS.INVALID_DATE_RANGE);
+    }
+
+    return this.findOccurrencesInRange(labId, from, to);
   }
 
   async updateSchedule(
@@ -234,6 +216,60 @@ export class CalendarService {
       }
       throw e;
     }
+  }
+
+  private async findOccurrencesInRange(
+    labId: number,
+    from: Date,
+    to: Date,
+  ): Promise<GetMonthlyScheduleResponseDto[]> {
+    const schedules = await this.prisma.schedules.findMany({
+      where: {
+        lab_id: BigInt(labId),
+        OR: [
+          {
+            recurrence_type: RecurrenceType.NONE,
+            start_at: { lt: to },
+            OR: [{ start_at: { gte: from } }, { end_at: { gt: from } }],
+          },
+          { recurrence_type: { not: RecurrenceType.NONE }, start_at: { lt: to } },
+        ],
+      },
+      select: {
+        id: true,
+        schedule_type: true,
+        recurrence_type: true,
+        title: true,
+        start_at: true,
+        end_at: true,
+        location: true,
+        schedule_participants: { select: { lab_member_id: true } },
+        scheduleExceptions: {
+          where: { occurrence_at: { gte: from, lt: to } },
+          select: { occurrence_at: true },
+        },
+      },
+    });
+
+    return schedules
+      .flatMap((schedule) => {
+        const cancelledAt = new Set(
+          schedule.scheduleExceptions.map((e) => e.occurrence_at.getTime()),
+        );
+        const occurrences =
+          schedule.recurrence_type === RecurrenceType.NONE
+            ? [{ start_at: schedule.start_at, end_at: schedule.end_at }]
+            : this.expandOccurrences(schedule, from, to);
+        return occurrences.map((occurrence) => ({
+          ...this.toScheduleResponse(
+            schedule,
+            occurrence,
+            schedule.schedule_participants.map((p) => Number(p.lab_member_id)),
+          ),
+          is_cancelled: cancelledAt.has(occurrence.start_at.getTime()),
+        }));
+      })
+      .sort((a, b) => a.start_at.getTime() - b.start_at.getTime());
   }
 
   private validateOccurrenceExists(
