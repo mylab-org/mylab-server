@@ -29,7 +29,18 @@ import {
   ApiChangeRole,
   ApiLeaveLab,
   ApiRemoveMember,
+  ApiGetLab,
+  ApiUpdateLab,
+  ApiGetLabLinks,
+  ApiCreateLabLink,
+  ApiDeleteLabLink,
+  ApiUpdateLabLink,
 } from './docs/lab.swagger.js';
+import { GetLabResponseDto } from './dto/response/get-lab.response.dto.js';
+import { UpdateLabRequestDto } from './dto/request/update-lab.request.dto.js';
+import { LabLinkResponseDto } from './dto/response/lab-link.response.dto.js';
+import { CreateLabLinkRequestDto } from './dto/request/create-lab-link.request.dto.js';
+import { UpdateLabLinkRequestDto } from './dto/request/update-lab-link.request.dto.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
@@ -131,5 +142,70 @@ export class LabController {
     @Request() req: { user: { userId: number } },
   ): Promise<{ message: string }> {
     return this.labService.removeMember(labId, targetUserId, req.user.userId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Get(':labId')
+  @ApiGetLab()
+  async getLab(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+  ): Promise<GetLabResponseDto> {
+    return this.labService.getLab(req.user.userId, labId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Patch(':labId')
+  @ApiUpdateLab()
+  async updateLab(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+    @Body() dto: UpdateLabRequestDto,
+  ): Promise<GetLabResponseDto> {
+    return this.labService.updateLab(req.user.userId, labId, dto);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Get(':labId/links')
+  @ApiGetLabLinks()
+  async getLinks(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+  ): Promise<LabLinkResponseDto[]> {
+    return this.labService.getLinks(req.user.userId, labId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Post(':labId/links')
+  @ApiCreateLabLink()
+  async createLink(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+    @Body() dto: CreateLabLinkRequestDto,
+  ): Promise<LabLinkResponseDto> {
+    return this.labService.createLink(req.user.userId, labId, dto);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Patch(':labId/links/:linkId')
+  @ApiUpdateLabLink()
+  async updateLink(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+    @Param('linkId', ParseIntPipe) linkId: number,
+    @Body() dto: UpdateLabLinkRequestDto,
+  ): Promise<LabLinkResponseDto> {
+    return this.labService.updateLink(req.user.userId, labId, linkId, dto);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Delete(':labId/links/:linkId')
+  @ApiDeleteLabLink()
+  async deleteLink(
+    @Request() req: { user: { userId: number } },
+    @Param('labId', ParseIntPipe) labId: number,
+    @Param('linkId', ParseIntPipe) linkId: number,
+  ): Promise<{ message: string }> {
+    return this.labService.deleteLink(req.user.userId, labId, linkId);
   }
 }
