@@ -8,13 +8,18 @@ import { CreateLabResponseDto } from './dto/response/create-lab.response.dto.js'
 import { InviteCodeResponseDto } from './dto/response/invite-code.response.dto.js';
 import { ValidateInviteCodeResponseDto } from './dto/response/validate-invite-code.response.dto.js';
 import { randomUUID } from 'node:crypto';
-import { invite_codes, Prisma, Role, Degree } from '@prisma/client';
+import { invite_codes, lab_links, Prisma, Role, Degree } from '@prisma/client';
 import { JoinLabRequestDto } from './dto/request/join-lab.request.dto.js';
 import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
 import { ChangeRoleRequestDto } from './dto/request/change-role.request.dto.js';
 import { USER_ERROR } from '../user/constants/user.error.js';
 import { DEFAULT_LAB_BOARD_CATEGORY } from './constants/lab-board.constant.js';
+import { GetLabResponseDto } from './dto/response/get-lab.response.dto.js';
+import { UpdateLabRequestDto } from './dto/request/update-lab.request.dto.js';
+import { LabLinkResponseDto } from './dto/response/lab-link.response.dto.js';
+import { CreateLabLinkRequestDto } from './dto/request/create-lab-link.request.dto.js';
+import { UpdateLabLinkRequestDto } from './dto/request/update-lab-link.request.dto.js';
 
 type PrismaClient = PrismaService | Prisma.TransactionClient;
 
@@ -350,6 +355,108 @@ export class LabService {
 
     return { message: '멤버를 내보냈습니다.' };
   }
+
+  // 연구실 정보 조회
+  async getLab(userId: number, labId: number): Promise<GetLabResponseDto> {
+    await this.chkUserInLab(userId, labId);
+
+    return this.findLabResponse(labId);
+  }
+
+  // 연구실 정보 수정
+  async updateLab(
+    userId: number,
+    labId: number,
+    dto: UpdateLabRequestDto,
+  ): Promise<GetLabResponseDto> {
+    await this.chkUserPermission(userId, labId);
+
+    await this.prisma.labs.update({
+      where: { id: BigInt(labId) },
+      data: {
+        name: dto.labName,
+        description: dto.description,
+        research_fields: dto.researchFields,
+      },
+    });
+
+    return this.findLabResponse(labId);
+  }
+
+  // 연구실 링크 목록 조회
+  async getLinks(userId: number, labId: number): Promise<LabLinkResponseDto[]> {
+    await this.chkUserInLab(userId, labId);
+
+    const links = await this.prisma.lab_links.findMany({
+      where: { lab_id: BigInt(labId) },
+      orderBy: { created_at: 'asc' },
+    });
+
+    return links.map((link) => this.toLabLinkResponse(link));
+  }
+
+  // 연구실 링크 추가
+  async createLink(
+    userId: number,
+    labId: number,
+    dto: CreateLabLinkRequestDto,
+  ): Promise<LabLinkResponseDto> {
+    await this.chkUserPermission(userId, labId);
+
+    const link = await this.prisma.lab_links.create({
+      data: {
+        lab_id: BigInt(labId),
+        name: dto.name,
+        url: dto.url,
+      },
+    });
+
+    return this.toLabLinkResponse(link);
+  }
+
+  // 연구실 링크 수정
+  async updateLink(
+    userId: number,
+    labId: number,
+    linkId: number,
+    dto: UpdateLabLinkRequestDto,
+  ): Promise<LabLinkResponseDto> {
+    await this.chkUserPermission(userId, labId);
+
+    const link = await this.prisma.lab_links.findFirst({
+      where: { id: BigInt(linkId), lab_id: BigInt(labId) },
+    });
+
+    if (!link) {
+      throw new CommonException(LAB_ERRORS.LINK_NOT_FOUND);
+    }
+
+    const updatedLink = await this.prisma.lab_links.update({
+      where: { id: link.id },
+      data: {
+        name: dto.name,
+        url: dto.url,
+      },
+    });
+
+    return this.toLabLinkResponse(updatedLink);
+  }
+
+  // 연구실 링크 삭제
+  async deleteLink(userId: number, labId: number, linkId: number): Promise<{ message: string }> {
+    await this.chkUserPermission(userId, labId);
+
+    const result = await this.prisma.lab_links.deleteMany({
+      where: { id: BigInt(linkId), lab_id: BigInt(labId) },
+    });
+
+    if (result.count === 0) {
+      throw new CommonException(LAB_ERRORS.LINK_NOT_FOUND);
+    }
+
+    return { message: '링크가 삭제되었습니다.' };
+  }
+
   /* ##### 내장 함수 ##### */
 
   // 교수 인증 확인
@@ -442,6 +549,38 @@ export class LabService {
       isActive: inviteCode.is_active,
       createdAt: inviteCode.created_at,
       createdBy: Number(inviteCode.created_by),
+    };
+  }
+
+  // 연구실 정보 dto 형식 변환
+  private async findLabResponse(labId: number): Promise<GetLabResponseDto> {
+    const lab = await this.prisma.labs.findUnique({
+      where: { id: BigInt(labId) },
+      include: { users: { select: { name: true } } },
+    });
+
+    if (!lab) {
+      throw new CommonException(LAB_ERRORS.LAB_NOT_FOUND);
+    }
+
+    return {
+      labId: Number(lab.id),
+      labName: lab.name,
+      universityName: lab.university_name,
+      departmentName: lab.department_name,
+      professorName: lab.users.name,
+      description: lab.description,
+      researchFields: lab.research_fields,
+    };
+  }
+
+  // 링크 dto 형식 변환
+  private toLabLinkResponse(link: lab_links): LabLinkResponseDto {
+    return {
+      linkId: Number(link.id),
+      name: link.name,
+      url: link.url,
+      createdAt: link.created_at,
     };
   }
 }

@@ -20,6 +20,8 @@ export const LAB_ERROR_CODES = {
   PROFESSOR_CANNOT_LEAVE: 'L201',
   NO_PERMISSION_TO_REMOVE_MEMBER: 'L202',
   CANNOT_REMOVE_SELF: 'L203',
+
+  LINK_NOT_FOUND: 'L301',
 } as const;
 
 export const LAB_ERRORS = {
@@ -87,6 +89,11 @@ export const LAB_ERRORS = {
     code: LAB_ERROR_CODES.CANNOT_REMOVE_SELF,
     message: '본인은 내보낼 수 없습니다. 연구실 나가기를 이용해주세요.',
     status: HttpStatus.BAD_REQUEST,
+  },
+  LINK_NOT_FOUND: {
+    code: LAB_ERROR_CODES.LINK_NOT_FOUND,
+    message: '존재하지 않는 링크.',
+    status: HttpStatus.NOT_FOUND,
   },
 };
 
