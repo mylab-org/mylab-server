@@ -11,6 +11,7 @@ import { CommentModule } from './comment/comment.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
 import { PaperModule } from './paper/paper.module.js';
 import { TaskModule } from './task/task.module.js';
+import { EquipmentModule } from './equipment/equipment.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TaskModule } from './task/task.module.js';
     CalendarModule,
     PaperModule,
     TaskModule,
+    EquipmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
