@@ -10,6 +10,7 @@ export const CALENDAR_ERROR_CODES = {
   OCCURRENCE_CANCEL_NOT_ALLOWED: 'CAL007',
   OCCURRENCE_NOT_FOUND: 'CAL008',
   OCCURRENCE_ALREADY_CANCELLED: 'CAL009',
+  INVALID_DATE_RANGE: 'CAL010',
 } as const;
 
 export const CALENDAR_ERRORS = {
@@ -56,6 +57,11 @@ export const CALENDAR_ERRORS = {
   OCCURRENCE_ALREADY_CANCELLED: {
     code: CALENDAR_ERROR_CODES.OCCURRENCE_ALREADY_CANCELLED,
     message: '이미 취소(스킵)된 일정',
+    status: HttpStatus.BAD_REQUEST,
+  },
+  INVALID_DATE_RANGE: {
+    code: CALENDAR_ERROR_CODES.INVALID_DATE_RANGE,
+    message: '조회 기간이 올바르지 않음 (종료 일시는 시작 일시 이후, 최대 42일)',
     status: HttpStatus.BAD_REQUEST,
   },
 };

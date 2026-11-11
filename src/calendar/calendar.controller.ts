@@ -20,8 +20,10 @@ import {
   ApiCalendarCreateSchedule,
   ApiCalendarDeleteSchedule,
   ApiCalendarGetMonthlySchedule,
+  ApiCalendarGetRangeSchedule,
   ApiCalendarUpdateSchedule,
 } from './docs/calendar.swagger.js';
+import { GetRangeScheduleRequestDto } from './dto/request/get-range-schedule.request.dto.js';
 import { CreateScheduleRequestDto } from './dto/request/create-schedule.request.dto.js';
 import { GetMonthlyScheduleRequestDto } from './dto/request/get-monthly-schedule.request.dto.js';
 import { User } from '../common/decoraters/user.decorator.js';
@@ -58,6 +60,19 @@ export class CalendarController {
     @Query() query: GetMonthlyScheduleRequestDto,
   ): Promise<GetMonthlyScheduleResponseDto[]> {
     return this.calendarService.getMonthlySchedule(userId, labId, query);
+  }
+
+  // 기간별 일정 목록 조회
+  // GET /labs/:labId/calendar?from=2026-11-08T00:00:00+09:00&to=2026-11-15T00:00:00+09:00
+  @UseGuards(AccessTokenGuard)
+  @Get()
+  @ApiCalendarGetRangeSchedule()
+  getRangeSchedule(
+    @User('userId') userId: number,
+    @Param('labId', ParseIntPipe) labId: number,
+    @Query() query: GetRangeScheduleRequestDto,
+  ): Promise<GetMonthlyScheduleResponseDto[]> {
+    return this.calendarService.getRangeSchedule(userId, labId, query);
   }
 
   // 일정 수정
