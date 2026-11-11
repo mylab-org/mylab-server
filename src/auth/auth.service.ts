@@ -246,10 +246,12 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string, refreshToken: string) {
-    await this.prisma.refresh_tokens.deleteMany({
-      where: { user_id: BigInt(userId), token_hash: this.hashRefreshToken(refreshToken) },
-    });
+  async logout(userId: string, refreshToken?: string) {
+    if (refreshToken) {
+      await this.prisma.refresh_tokens.deleteMany({
+        where: { user_id: BigInt(userId), token_hash: this.hashRefreshToken(refreshToken) },
+      });
+    }
 
     return { message: '로그아웃 되었습니다.' };
   }

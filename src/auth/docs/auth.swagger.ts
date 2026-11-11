@@ -1,10 +1,8 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { LoginResponseDto } from '../dto/response/login.response.dto.js';
 import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 import { TokenResponseDto } from '../dto/response/token.response.dto.js';
-import { RefreshRequestDto } from '../dto/request/refresh.request.dto.js';
-import { LogoutRequestDto } from '../dto/request/logout.request.dto.js';
 
 export function ApiRegister() {
   return applyDecorators(
@@ -27,11 +25,12 @@ export function ApiLogin() {
   return applyDecorators(
     ApiOperation({
       summary: '로그인',
-      description: '이메일과 비밀번호로 로그인하여 토큰을 발급받습니다.',
+      description:
+        '이메일과 비밀번호로 로그인합니다. Access Token은 응답 body로, Refresh Token은 httpOnly 쿠키(Set-Cookie)로 발급됩니다. 프론트는 요청 시 credentials를 포함해야 합니다(axios: withCredentials: true / fetch: credentials: "include").',
     }),
     ApiResponse({
       status: 200,
-      description: '로그인 성공 (Access/Refresh Token 발급)',
+      description: '로그인 성공 (Access Token은 body, Refresh Token은 쿠키)',
       type: LoginResponseDto,
     }),
     ApiResponse({ status: 400, description: '이메일 또는 비밀번호 누락' }),
@@ -75,11 +74,10 @@ export function ApiLogout() {
     ApiBearerAuth(),
     ApiOperation({
       summary: '로그아웃',
-      description: '현재 기기의 Refresh Token을 파기합니다. 다른 기기의 로그인은 유지됩니다.',
+      description:
+        '쿠키의 Refresh Token을 파기하고 쿠키를 삭제합니다. 다른 기기의 로그인은 유지됩니다. 요청 body는 필요 없습니다.',
     }),
-    ApiBody({ type: LogoutRequestDto }),
     ApiResponse({ status: 200, description: '로그아웃 성공', type: MessageResponseDto }),
-    ApiResponse({ status: 400, description: 'Refresh Token 누락' }),
     ApiResponse({ status: 401, description: '인증되지 않은 사용자 (토큰 없음/만료)' }),
   );
 }
@@ -89,11 +87,9 @@ export function ApiRefresh() {
     ApiOperation({
       summary: '토큰 재발급',
       description:
-        'Refresh Token을 이용하여 새로운 Access/Refresh Token을 발급받습니다. Refresh Token은 요청 body로 전달합니다.',
+        '쿠키의 Refresh Token으로 새 Access Token을 발급합니다. Refresh Token도 새로 발급되어 쿠키가 교체됩니다. 요청 body는 필요 없습니다.',
     }),
-    ApiBody({ type: RefreshRequestDto }),
     ApiResponse({ status: 200, description: '토큰 재발급 성공', type: TokenResponseDto }),
-    ApiResponse({ status: 400, description: 'Refresh Token 누락' }),
-    ApiResponse({ status: 401, description: '유효하지 않거나 만료된 Refresh Token' }),
+    ApiResponse({ status: 401, description: 'Refresh Token 쿠키 없음 / 유효하지 않음 / 만료' }),
   );
 }
