@@ -47,7 +47,7 @@ import { JoinLabResponseDto } from './dto/response/join-lab.response.dto.js';
 import { GetMembersResponseDto } from './dto/response/get-members.dto.js';
 import { ChangeRoleRequestDto } from './dto/request/change-role.request.dto.js';
 
-@ApiTags('Labs')
+@ApiTags('연구실')
 @Controller('labs')
 export class LabController {
   constructor(private readonly labService: LabService) {}

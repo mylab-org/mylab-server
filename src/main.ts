@@ -32,10 +32,16 @@ async function bootstrap() {
     .addBearerAuth()
     .addTag('개인 업무 및 미팅', 'task')
     .addTag('게시판', 'board')
+    .addTag('연구실', 'labs')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+  SwaggerModule.setup('api-docs', app, document, {
+    swaggerOptions: {
+      tagsSorter: 'alpha',
+      operationsSorter: 'method',
+    },
+  });
 
   await app.listen(process.env.PORT ?? 8080);
 }
