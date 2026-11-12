@@ -16,7 +16,7 @@ export class UpdateLabLinkRequestDto {
   @IsOptional()
   @IsUrl(
     { require_protocol: true, protocols: ['http', 'https'] },
-    { message: '올바른 링크 주소를 입력해주세요. (http:// 또는 https:// 포함)' },
+    { message: '링크 주소를 확인해주세요.' },
   )
   @MaxLength(2048, { message: '링크 주소가 너무 깁니다.' })
   url?: string;
