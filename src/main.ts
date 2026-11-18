@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
 import { BigintInterceptor } from './common/interceptors/bigint.interceptor.js';
@@ -15,11 +16,13 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
+  // 쿠키 주고받으려면 credentials 필수, 이때 origin은 * 안 됨
   app.enableCors({
     origin: clientUrl,
     credentials: true,
   });
 
+  app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new BigintInterceptor(), new ResponseInterceptor());
