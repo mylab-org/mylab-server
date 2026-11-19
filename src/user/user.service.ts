@@ -10,6 +10,7 @@ import { WITHDRAWN_USER_NAME } from './constants/user.constant.js';
 import { LAB_STATUS } from '../lab/constants/lab-status.constant.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
 import { WithdrawUserRequestDto } from './dto/request/withdraw-user.request.dto.js';
+import { GetMyPostsResponseDto } from './dto/response/get-my-posts.response.dto.js';
 
 @Injectable()
 export class UserService {
@@ -188,5 +189,49 @@ export class UserService {
     ]);
 
     return { message: '비밀번호가 변경되었습니다' };
+  }
+
+  // 내가 작성한 게시글 목록 (클릭 시 categoryId + id로 상세 이동)
+  async getMyPosts(
+    userId: number,
+    cursor?: number,
+    pageSize: number = 20,
+  ): Promise<GetMyPostsResponseDto> {
+    const rows = await this.prisma.posts.findMany({
+      where: {
+        author_id: BigInt(userId),
+        ...(cursor !== undefined && { id: { lt: BigInt(cursor) } }),
+      },
+      take: pageSize + 1,
+      orderBy: { id: 'desc' },
+      include: {
+        categories: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { comments: true },
+        },
+      },
+    });
+
+    const hasNext = rows.length > pageSize;
+    const posts = hasNext ? rows.slice(0, pageSize) : rows;
+
+    return {
+      posts: posts.map((post) => ({
+        id: Number(post.id),
+        categoryId: Number(post.categories.id),
+        categoryName: post.categories.name,
+        title: post.title,
+        content: post.content,
+        createdAt: post.created_at,
+        likeCount: post.like_count,
+        commentCount: post._count.comments,
+      })),
+      page: {
+        nextCursor: hasNext ? Number(posts[posts.length - 1].id) : null,
+        hasNext,
+      },
+    };
   }
 }
