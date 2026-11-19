@@ -22,24 +22,24 @@ export class CalendarService {
     dto: CreateScheduleRequestDto,
   ): Promise<CreateScheduleResponseDto> {
     await this.chkUserAccessLab(userId, labId);
-    const startAt = new Date(dto.start_at);
-    const endAt = dto.end_at ? new Date(dto.end_at) : null;
-    const recurrenceType = dto.recurrence_type ?? RecurrenceType.NONE;
+    const startAt = new Date(dto.startAt);
+    const endAt = dto.endAt ? new Date(dto.endAt) : null;
+    const recurrenceType = dto.recurrenceType ?? RecurrenceType.NONE;
     this.validateSchedulePeriod(startAt, endAt);
-    this.validateRecurrenceAllowed(dto.schedule_type, recurrenceType);
+    this.validateRecurrenceAllowed(dto.scheduleType, recurrenceType);
 
     const schedule = await this.prisma.$transaction(async (tx) => {
-      await this.chkParticipantsInLab(labId, dto.participant_ids, tx);
+      const memberIds = await this.findParticipantMemberIds(labId, dto.participantIds, tx);
       const created = await tx.schedules.create({
         data: {
           lab_id: BigInt(labId),
-          schedule_type: dto.schedule_type,
+          schedule_type: dto.scheduleType,
           recurrence_type: recurrenceType,
           title: dto.title,
           start_at: startAt,
           end_at: endAt,
           location: dto.location,
-          submission_deadline: dto.submission_deadline ? new Date(dto.submission_deadline) : null,
+          submission_deadline: dto.submissionDeadline ? new Date(dto.submissionDeadline) : null,
           created_by: BigInt(userId),
         },
         select: {
@@ -53,10 +53,10 @@ export class CalendarService {
         },
       });
       await tx.schedule_participants.createMany({
-        data: dto.participant_ids.map((memberId) => ({
+        data: memberIds.map((memberId) => ({
           schedule_id: created.id,
           lab_id: BigInt(labId),
-          lab_member_id: BigInt(memberId),
+          lab_member_id: memberId,
         })),
       });
       return created;
@@ -67,7 +67,7 @@ export class CalendarService {
         start_at: schedule.start_at,
         end_at: schedule.end_at,
       },
-      dto.participant_ids,
+      dto.participantIds,
     );
   }
 
@@ -113,20 +113,21 @@ export class CalendarService {
     const existing = await this.findScheduleOrThrow(labId, scheduleId);
     // this.chkUserCanUpdateSchedule(userId, existing); // 추후 일정 수정 권한 검증을 위한 로직
 
-    const scheduleType = dto.schedule_type ?? existing.schedule_type;
-    const recurrenceType = dto.recurrence_type ?? existing.recurrence_type;
+    const scheduleType = dto.scheduleType ?? existing.schedule_type;
+    const recurrenceType = dto.recurrenceType ?? existing.recurrence_type;
     const title = dto.title ?? existing.title;
     const location = dto.location ?? existing.location;
-    const startAt = dto.start_at ? new Date(dto.start_at) : existing.start_at;
-    const endAt = dto.end_at !== undefined ? new Date(dto.end_at) : existing.end_at;
+    const startAt = dto.startAt ? new Date(dto.startAt) : existing.start_at;
+    const endAt = dto.endAt !== undefined ? new Date(dto.endAt) : existing.end_at;
 
     this.validateSchedulePeriod(startAt, endAt);
     this.validateRecurrenceAllowed(scheduleType, recurrenceType);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      if (dto.participant_ids !== undefined) {
-        await this.chkParticipantsInLab(labId, dto.participant_ids, tx);
-      }
+      const memberIds =
+        dto.participantIds !== undefined
+          ? await this.findParticipantMemberIds(labId, dto.participantIds, tx)
+          : undefined;
       const result = await tx.schedules.update({
         where: { id_lab_id: { id: BigInt(scheduleId), lab_id: BigInt(labId) } },
         data: {
@@ -137,9 +138,7 @@ export class CalendarService {
           end_at: endAt,
           location,
           submission_deadline:
-            dto.submission_deadline !== undefined
-              ? new Date(dto.submission_deadline)
-              : undefined,
+            dto.submissionDeadline !== undefined ? new Date(dto.submissionDeadline) : undefined,
           updated_by: BigInt(userId),
         },
         select: {
@@ -152,27 +151,27 @@ export class CalendarService {
           location: true,
         },
       });
-      if (dto.participant_ids !== undefined) {
+      if (memberIds !== undefined) {
         await tx.schedule_participants.deleteMany({ where: { schedule_id: result.id } });
         await tx.schedule_participants.createMany({
-          data: dto.participant_ids.map((memberId) => ({
+          data: memberIds.map((memberId) => ({
             schedule_id: result.id,
             lab_id: BigInt(labId),
-            lab_member_id: BigInt(memberId),
+            lab_member_id: memberId,
           })),
         });
       }
       return result;
     });
     const participantIds =
-      dto.participant_ids !== undefined
-        ? dto.participant_ids
+      dto.participantIds !== undefined
+        ? dto.participantIds
         : (
             await this.prisma.schedule_participants.findMany({
               where: { schedule_id: updated.id },
-              select: { lab_member_id: true },
+              select: { lab_members: { select: { user_id: true } } },
             })
-          ).map((p) => Number(p.lab_member_id));
+          ).map((p) => Number(p.lab_members.user_id));
     return this.toScheduleResponse(
       updated,
       { start_at: updated.start_at, end_at: updated.end_at },
@@ -243,7 +242,7 @@ export class CalendarService {
         start_at: true,
         end_at: true,
         location: true,
-        schedule_participants: { select: { lab_member_id: true } },
+        schedule_participants: { select: { lab_members: { select: { user_id: true } } } },
         scheduleExceptions: {
           where: { occurrence_at: { gte: from, lt: to } },
           select: { occurrence_at: true },
@@ -264,12 +263,12 @@ export class CalendarService {
           ...this.toScheduleResponse(
             schedule,
             occurrence,
-            schedule.schedule_participants.map((p) => Number(p.lab_member_id)),
+            schedule.schedule_participants.map((p) => Number(p.lab_members.user_id)),
           ),
-          is_cancelled: cancelledAt.has(occurrence.start_at.getTime()),
+          isCancelled: cancelledAt.has(occurrence.start_at.getTime()),
         }));
       })
-      .sort((a, b) => a.start_at.getTime() - b.start_at.getTime());
+      .sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
   }
 
   private validateOccurrenceExists(
@@ -323,22 +322,23 @@ export class CalendarService {
   //   return;
   // }
 
-  private async chkParticipantsInLab(
+  private async findParticipantMemberIds(
     labId: number,
-    participantIds: number[],
+    participantUserIds: number[],
     client: PrismaService | Prisma.TransactionClient = this.prisma,
-  ) {
+  ): Promise<bigint[]> {
     const members = await client.lab_members.findMany({
       where: {
-        id: { in: participantIds.map((id) => BigInt(id)) },
+        user_id: { in: participantUserIds.map((id) => BigInt(id)) },
         lab_id: BigInt(labId),
         left_at: null,
       },
       select: { id: true },
     });
-    if (members.length !== participantIds.length) {
+    if (members.length !== participantUserIds.length) {
       throw new CommonException(CALENDAR_ERRORS.PARTICIPANT_NOT_FOUND);
     }
+    return members.map((member) => member.id);
   }
 
   private async chkUserAccessLab(userId: number, labId: number) {
@@ -440,13 +440,13 @@ export class CalendarService {
   ) {
     return {
       id: Number(schedule.id),
-      schedule_type: schedule.schedule_type,
-      recurrence_type: schedule.recurrence_type,
+      scheduleType: schedule.schedule_type,
+      recurrenceType: schedule.recurrence_type,
       title: schedule.title,
-      start_at: occurrence.start_at,
-      end_at: occurrence.end_at,
+      startAt: occurrence.start_at,
+      endAt: occurrence.end_at,
       location: schedule.location,
-      participant_ids: participantIds,
+      participantIds,
     };
   }
 }

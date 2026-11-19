@@ -6,16 +6,16 @@ export class CreateScheduleResponseDto {
   id: number;
 
   @ApiProperty({ example: 'MEETING', enum: ScheduleType, description: '일정 타입' })
-  schedule_type: ScheduleType;
+  scheduleType: ScheduleType;
 
   @ApiProperty({ example: '주간 랩미팅', description: '일정 이름' })
   title: string;
 
   @ApiProperty({ example: '2026-01-05T10:00:00.000Z', description: '시작 일시' })
-  start_at: Date;
+  startAt: Date;
 
   @ApiProperty({ example: '2026-01-05T11:00:00.000Z', nullable: true, description: '종료 일시' })
-  end_at: Date | null;
+  endAt: Date | null;
 
   @ApiProperty({ example: '세미나실', nullable: true, description: '장소' })
   location: string | null;
@@ -23,10 +23,10 @@ export class CreateScheduleResponseDto {
   @ApiProperty({
     example: [1, 2, 3],
     type: [Number],
-    description: '참가 인원 (lab_member ID 목록)',
+    description: '참가 인원 (유저 ID 목록)',
   })
-  participant_ids: number[];
+  participantIds: number[];
 
   @ApiProperty({ example: 'NONE', enum: RecurrenceType, description: '반복 주기' })
-  recurrence_type: RecurrenceType;
+  recurrenceType: RecurrenceType;
 }
