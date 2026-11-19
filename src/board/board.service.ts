@@ -64,6 +64,48 @@ export class BoardService {
     );
   }
 
+  async getPost(userId: number, pid: number) {
+    const post = await this.prisma.posts.findUnique({
+      where: { id: BigInt(pid) },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            degree: true,
+            lab_members: {
+              where: { left_at: null },
+              take: 1,
+              select: {
+                labs: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        _count: {
+          select: { comments: true },
+        },
+        post_likes: {
+          where: { user_id: BigInt(userId) },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!post) throw new NotFoundException(BOARD_ERROR.BOARD_NOT_FOUND);
+
+    await this.chkUserAccessBoard(userId, Number(post.category_id));
+
+    return {
+      ...post,
+      is_mine: post.author_id === BigInt(userId),
+      author: post.is_anonymous
+        ? { id: null, name: '익명', degree: null, lab_members: [] }
+        : post.author,
+    };
+  }
+
   async getBoard(userId: number, categoryId: number, cursor?: number, pageSize: number = 20) {
     // 1. 게시판 접근 권한 확인
     await this.chkUserAccessBoard(userId, categoryId);

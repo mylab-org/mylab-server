@@ -31,6 +31,20 @@ export const ApiGetBoard = () => {
   );
 };
 
+export const ApiGetPost = () => {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '게시글 상세 조회',
+      description: '게시글 ID로 상세 정보를 조회. 내 글 목록 등에서 클릭 시 사용.',
+    }),
+    ApiParam({ name: 'pid', description: '게시글 ID', type: Number }),
+    ApiResponse({ status: 200, description: '성공', type: PostItemDto }),
+    ApiResponse({ status: 404, description: '게시글 없음' }),
+    ApiResponse({ status: 403, description: '접근 권한 없음' }),
+  );
+};
+
 export const ApiCreateBoard = () => {
   return applyDecorators(
     ApiBearerAuth(),
