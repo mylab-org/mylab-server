@@ -19,6 +19,7 @@ import {
   ApiDeleteBoard,
   ApiGetBoard,
   ApiGetCategory,
+  ApiGetPost,
   ApiLikeBoard,
   ApiUnlikeBoard,
   ApiUpdateBoard,
@@ -39,6 +40,17 @@ export class BoardController {
   @ApiGetCategory()
   async getCategories(@User('userId') userId: number, @Param('labId', ParseIntPipe) labId: number) {
     return this.boardService.getCategory(userId, labId);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Get('posts/:pid')
+  @ApiGetPost()
+  async getPost(@User('userId') userId: number, @Param('pid', ParseIntPipe) pid: number) {
+    const post = await this.boardService.getPost(userId, pid);
+
+    return plainToInstance(PostItemDto, post, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AccessTokenGuard)

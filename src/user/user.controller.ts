@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Patch, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  Query,
+  ParseIntPipe,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto.js';
@@ -7,10 +17,13 @@ import { WithdrawUserRequestDto } from './dto/request/withdraw-user.request.dto.
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import {
   ApiChangePassword,
+  ApiGetMyCommentedPosts,
+  ApiGetMyPosts,
   ApiGetProfile,
   ApiUpdateProfile,
   ApiWithdrawUser,
 } from './docs/user.swagger.js';
+import { GetMyPostsResponseDto } from './dto/response/get-my-posts.response.dto.js';
 
 @ApiTags('Users')
 @Controller('users')
@@ -22,6 +35,26 @@ export class UserController {
   @ApiGetProfile()
   async getProfile(@Request() req: { user: { userId: number } }) {
     return this.userService.getProfile(req.user.userId);
+  }
+
+  @Get('me/posts')
+  @UseGuards(AccessTokenGuard)
+  @ApiGetMyPosts()
+  async getMyPosts(
+    @Request() req: { user: { userId: number } },
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+  ): Promise<GetMyPostsResponseDto> {
+    return this.userService.getMyPosts(req.user.userId, cursor);
+  }
+
+  @Get('me/commented-posts')
+  @UseGuards(AccessTokenGuard)
+  @ApiGetMyCommentedPosts()
+  async getMyCommentedPosts(
+    @Request() req: { user: { userId: number } },
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+  ): Promise<GetMyPostsResponseDto> {
+    return this.userService.getMyCommentedPosts(req.user.userId, cursor);
   }
 
   @Patch('me')
