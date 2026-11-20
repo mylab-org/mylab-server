@@ -214,6 +214,52 @@ export class UserService {
       },
     });
 
+    return this.toMyPostListResponse(rows, pageSize);
+  }
+
+  // 내가 댓글(대댓글 포함)을 단 게시글 목록 — 삭제된 댓글 제외, 게시글 중복 없음
+  async getMyCommentedPosts(
+    userId: number,
+    cursor?: number,
+    pageSize: number = 20,
+  ): Promise<GetMyPostsResponseDto> {
+    const rows = await this.prisma.posts.findMany({
+      where: {
+        comments: {
+          some: {
+            author_id: BigInt(userId),
+            deleted_at: null,
+          },
+        },
+        ...(cursor !== undefined && { id: { lt: BigInt(cursor) } }),
+      },
+      take: pageSize + 1,
+      orderBy: { id: 'desc' },
+      include: {
+        categories: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { comments: true },
+        },
+      },
+    });
+
+    return this.toMyPostListResponse(rows, pageSize);
+  }
+
+  private toMyPostListResponse(
+    rows: Array<{
+      id: bigint;
+      title: string;
+      content: string;
+      created_at: Date;
+      like_count: number;
+      categories: { id: bigint; name: string };
+      _count: { comments: number };
+    }>,
+    pageSize: number,
+  ): GetMyPostsResponseDto {
     const hasNext = rows.length > pageSize;
     const posts = hasNext ? rows.slice(0, pageSize) : rows;
 

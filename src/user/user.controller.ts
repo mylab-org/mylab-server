@@ -17,6 +17,7 @@ import { WithdrawUserRequestDto } from './dto/request/withdraw-user.request.dto.
 import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import {
   ApiChangePassword,
+  ApiGetMyCommentedPosts,
   ApiGetMyPosts,
   ApiGetProfile,
   ApiUpdateProfile,
@@ -44,6 +45,16 @@ export class UserController {
     @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
   ): Promise<GetMyPostsResponseDto> {
     return this.userService.getMyPosts(req.user.userId, cursor);
+  }
+
+  @Get('me/commented-posts')
+  @UseGuards(AccessTokenGuard)
+  @ApiGetMyCommentedPosts()
+  async getMyCommentedPosts(
+    @Request() req: { user: { userId: number } },
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+  ): Promise<GetMyPostsResponseDto> {
+    return this.userService.getMyCommentedPosts(req.user.userId, cursor);
   }
 
   @Patch('me')

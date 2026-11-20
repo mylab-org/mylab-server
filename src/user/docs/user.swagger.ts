@@ -33,6 +33,25 @@ export function ApiGetMyPosts() {
   );
 }
 
+export function ApiGetMyCommentedPosts() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '내가 댓글 단 게시글 목록',
+      description:
+        '내가 작성한 댓글·대댓글이 있는 게시글을 조회. 삭제된 댓글은 제외. 같은 글에 여러 댓글이 있어도 게시글은 1번만 반환. 클릭 시 categoryId + id로 상세 이동.',
+    }),
+    ApiQuery({
+      name: 'cursor',
+      required: false,
+      type: Number,
+      description: '마지막으로 받은 게시글 id (다음 페이지 요청 시)',
+    }),
+    ApiResponse({ status: 200, description: '조회 성공', type: GetMyPostsResponseDto }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+  );
+}
+
 export function ApiUpdateProfile() {
   return applyDecorators(
     ApiBearerAuth(),
