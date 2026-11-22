@@ -18,12 +18,14 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard.js';
 import {
   ApiChangePassword,
   ApiGetMyCommentedPosts,
+  ApiGetMyInProgress,
   ApiGetMyPosts,
   ApiGetProfile,
   ApiUpdateProfile,
   ApiWithdrawUser,
 } from './docs/user.swagger.js';
 import { GetMyPostsResponseDto } from './dto/response/get-my-posts.response.dto.js';
+import { GetMyInProgressResponseDto } from './dto/response/get-my-in-progress.response.dto.js';
 
 @ApiTags('Users')
 @Controller('users')
@@ -35,6 +37,15 @@ export class UserController {
   @ApiGetProfile()
   async getProfile(@Request() req: { user: { userId: number } }) {
     return this.userService.getProfile(req.user.userId);
+  }
+
+  @Get('me/in-progress')
+  @UseGuards(AccessTokenGuard)
+  @ApiGetMyInProgress()
+  async getMyInProgress(
+    @Request() req: { user: { userId: number } },
+  ): Promise<GetMyInProgressResponseDto> {
+    return this.userService.getMyInProgress(req.user.userId);
   }
 
   @Get('me/posts')

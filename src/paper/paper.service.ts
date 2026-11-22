@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PAPER_ERROR } from './constants/paper.error.js';
@@ -8,7 +13,11 @@ import { UpdatePaperRequestDto } from './dto/request/update-paper.request.dto.js
 import { UpdatePaperMemberRequestDto } from './dto/request/update-paper-member.request.dto.js';
 import { AddPaperMemberRequestDto } from './dto/request/add-paper-member.request.dto.js';
 import { PaperResponseDto } from './dto/response/paper.response.dto.js';
-import { PAPER_STATUS, PAPER_STATUS_LABEL, DEFAULT_PAPER_STATUS } from './constants/paper-status.constant.js';
+import {
+  PAPER_STATUS,
+  PAPER_STATUS_LABEL,
+  DEFAULT_PAPER_STATUS,
+} from './constants/paper-status.constant.js';
 import type { PaperStatus } from './constants/paper-status.constant.js';
 
 const paperInclude = {
@@ -101,6 +110,24 @@ export class PaperService {
 
     const papers = await this.prisma.papers.findMany({
       where: { lab_id: BigInt(labId) },
+      include: paperInclude,
+      orderBy: { created_at: 'desc' },
+    });
+
+    return papers.map((paper) => this.toPaperResponse(paper));
+  }
+
+  // 내가 참여 중이며 완료되지 않은 논문
+  async listMyActivePapers(userId: number): Promise<PaperResponseDto[]> {
+    const papers = await this.prisma.papers.findMany({
+      where: {
+        status: { not: 'COMPLETED' },
+        paper_members: {
+          some: {
+            lab_members: { user_id: BigInt(userId) },
+          },
+        },
+      },
       include: paperInclude,
       orderBy: { created_at: 'desc' },
     });

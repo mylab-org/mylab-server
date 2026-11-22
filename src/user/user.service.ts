@@ -11,10 +11,17 @@ import { LAB_STATUS } from '../lab/constants/lab-status.constant.js';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto.js';
 import { WithdrawUserRequestDto } from './dto/request/withdraw-user.request.dto.js';
 import { GetMyPostsResponseDto } from './dto/response/get-my-posts.response.dto.js';
+import { GetMyInProgressResponseDto } from './dto/response/get-my-in-progress.response.dto.js';
+import { PaperService } from '../paper/paper.service.js';
+import { TaskService } from '../task/task.service.js';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paperService: PaperService,
+    private taskService: TaskService,
+  ) {}
 
   private readonly userSelect = {
     id: true,
@@ -189,6 +196,16 @@ export class UserService {
     ]);
 
     return { message: '비밀번호가 변경되었습니다' };
+  }
+
+  // 진행 중인 내 논문 + 개인 업무 (논문: COMPLETED 제외, 업무: READY·COMPLETED 제외)
+  async getMyInProgress(userId: number): Promise<GetMyInProgressResponseDto> {
+    const [papers, tasks] = await Promise.all([
+      this.paperService.listMyActivePapers(userId),
+      this.taskService.listMyActiveTasks(userId),
+    ]);
+
+    return { papers, tasks };
   }
 
   // 내가 작성한 게시글 목록 (클릭 시 categoryId + id로 상세 이동)

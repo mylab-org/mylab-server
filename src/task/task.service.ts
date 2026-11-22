@@ -50,6 +50,19 @@ export class TaskService {
     return rows.map((task) => this.toTaskResponse(task));
   }
 
+  // 내가 작성했고 진행 중인 개인 업무/미팅 (READY·COMPLETED 제외)
+  async listMyActiveTasks(userId: number): Promise<TaskResponseDto[]> {
+    const rows = await this.prisma.tasks.findMany({
+      where: {
+        user_id: BigInt(userId),
+        status: 'IN_PROGRESS',
+      },
+      orderBy: [{ start_at: 'asc' }, { id: 'asc' }],
+    });
+
+    return rows.map((task) => this.toTaskResponse(task));
+  }
+
   async getLabWorkboard(userId: number, labId: number): Promise<WorkboardMemberResponseDto[]> {
     await this.chkLabMember(userId, labId);
 
