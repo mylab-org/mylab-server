@@ -4,12 +4,26 @@ import { UserResponseDto } from '../dto/response/user.response.dto.js';
 import { MessageResponseDto } from '../../common/dto/response/message.response.dto.js';
 import { WithdrawUserRequestDto } from '../dto/request/withdraw-user.request.dto.js';
 import { GetMyPostsResponseDto } from '../dto/response/get-my-posts.response.dto.js';
+import { GetMyInProgressResponseDto } from '../dto/response/get-my-in-progress.response.dto.js';
 
 export function ApiGetProfile() {
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({ summary: '내 정보 조회' }),
     ApiResponse({ status: 200, description: '조회 성공', type: UserResponseDto }),
+    ApiResponse({ status: 401, description: '인증 실패' }),
+  );
+}
+
+export function ApiGetMyInProgress() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '진행 중인 내 업무 현황',
+      description:
+        '내가 참여 중인 논문과 개인 업무/미팅을 조회. 논문은 COMPLETED 제외, 개인 업무/미팅은 READY·COMPLETED 제외(IN_PROGRESS만). papers와 tasks로 분리 반환.',
+    }),
+    ApiResponse({ status: 200, description: '조회 성공', type: GetMyInProgressResponseDto }),
     ApiResponse({ status: 401, description: '인증 실패' }),
   );
 }
