@@ -75,7 +75,7 @@ export function ApiDeleteEquipments() {
     ApiOperation({
       summary: '비품 삭제 (여러 개)',
       description:
-        '교수 or 랩장만 가능. 체크한 비품을 한 번에 삭제. 해당 비품의 대여 기록도 함께 삭제됨.',
+        '교수 or 랩장만 가능. 체크한 비품을 한 번에 삭제. 지난/진행 중 대여 기록은 내역에 남고, 아직 시작 안 한 예약 대여는 함께 취소됨.',
     }),
     labIdParam,
     ApiBody({ type: DeleteEquipmentsRequestDto }),
