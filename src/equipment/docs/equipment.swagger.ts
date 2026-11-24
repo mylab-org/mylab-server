@@ -154,6 +154,20 @@ export function ApiGetMyRentals() {
   );
 }
 
+export function ApiGetMyRentalHistory() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '내 대여 내역',
+      description: '지난 대여까지 포함한 내 대여 전체 목록 (최신순). 더보기 "내 비품 대여 내역"용.',
+    }),
+    labIdParam,
+    ApiResponse({ status: 200, description: '조회 성공', type: [RentalResponseDto] }),
+    unauthorized,
+    notInLab,
+  );
+}
+
 export function ApiCreateEquipmentPurchase() {
   return applyDecorators(
     ApiBearerAuth(),
@@ -177,6 +191,22 @@ export function ApiGetEquipmentPurchases() {
       summary: '비품 구매 신청 목록',
       description:
         '교수/랩장은 연구실 전체 신청, 그 외는 본인 신청만 조회. status로 필터 (PENDING: 신청 내역, APPROVED: 승인 내역). 최신순.',
+    }),
+    labIdParam,
+    ApiResponse({ status: 200, description: '조회 성공', type: [EquipmentPurchaseResponseDto] }),
+    ApiResponse({ status: 400, description: '잘못된 status 값' }),
+    unauthorized,
+    notInLab,
+  );
+}
+
+export function ApiGetMyEquipmentPurchases() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '내 비품 구매 신청 목록',
+      description:
+        '역할과 관계없이 내가 신청한 것만 조회. status로 필터 (없으면 전체). 최신순. 더보기 "내 비품 신청 내역"용.',
     }),
     labIdParam,
     ApiResponse({ status: 200, description: '조회 성공', type: [EquipmentPurchaseResponseDto] }),
