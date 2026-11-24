@@ -466,6 +466,7 @@ model equipments {
   is_rentable       Boolean             @default(true)
   created_by        BigInt
   created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  deleted_at        DateTime?           @db.Timestamptz(6)
   labs              labs                @relation(fields: [lab_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users             users               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   equipment_rentals equipment_rentals[]

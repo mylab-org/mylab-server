@@ -44,7 +44,7 @@ export class EquipmentService {
     await this.chkUserInLab(userId, labId);
 
     const equipments = await this.prisma.equipments.findMany({
-      where: { lab_id: BigInt(labId) },
+      where: { lab_id: BigInt(labId), deleted_at: null },
       orderBy: { created_at: 'asc' },
       include: {
         equipment_rentals: {
@@ -120,8 +120,22 @@ export class EquipmentService {
   ): Promise<{ message: string }> {
     await this.chkUserPermission(userId, labId);
 
-    const result = await this.prisma.equipments.deleteMany({
-      where: { id: { in: dto.equipmentIds.map((id) => BigInt(id)) }, lab_id: BigInt(labId) },
+    const equipmentIds = dto.equipmentIds.map((id) => BigInt(id));
+    const now = new Date();
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.equipments.updateMany({
+        where: { id: { in: equipmentIds }, lab_id: BigInt(labId), deleted_at: null },
+        data: { deleted_at: now },
+      });
+      await tx.equipment_rentals.deleteMany({
+        where: {
+          equipment_id: { in: equipmentIds },
+          equipments: { lab_id: BigInt(labId) },
+          start_at: { gt: now },
+        },
+      });
+      return deleted;
     });
 
     if (result.count === 0) {
@@ -231,6 +245,22 @@ export class EquipmentService {
     return rentals.map((rental) => this.toRentalResponse(rental));
   }
 
+  // 내 대여 내역 (지난 대여 포함)
+  async getMyRentalHistory(userId: number, labId: number): Promise<RentalResponseDto[]> {
+    await this.chkUserInLab(userId, labId);
+
+    const rentals = await this.prisma.equipment_rentals.findMany({
+      where: {
+        user_id: BigInt(userId),
+        equipments: { lab_id: BigInt(labId) },
+      },
+      orderBy: { start_at: 'desc' },
+      select: rentalSelect,
+    });
+
+    return rentals.map((rental) => this.toRentalResponse(rental));
+  }
+
   // 비품 구매 신청
   async createPurchase(
     userId: number,
@@ -267,6 +297,27 @@ export class EquipmentService {
         lab_id: BigInt(labId),
         status: query.status,
         requester_id: this.isAdmin(role) ? undefined : BigInt(userId),
+      },
+      orderBy: { created_at: 'desc' },
+      include: purchaseInclude,
+    });
+
+    return purchases.map((purchase) => this.toPurchaseResponse(purchase));
+  }
+
+  // 내 비품 구매 신청 목록
+  async getMyPurchases(
+    userId: number,
+    labId: number,
+    query: GetEquipmentPurchasesRequestDto,
+  ): Promise<EquipmentPurchaseResponseDto[]> {
+    await this.chkUserInLab(userId, labId);
+
+    const purchases = await this.prisma.equipment_requests.findMany({
+      where: {
+        lab_id: BigInt(labId),
+        status: query.status,
+        requester_id: BigInt(userId),
       },
       orderBy: { created_at: 'desc' },
       include: purchaseInclude,
@@ -351,7 +402,7 @@ export class EquipmentService {
 
   private async findEquipmentOrThrow(labId: number, equipmentId: number) {
     const equipment = await this.prisma.equipments.findFirst({
-      where: { id: BigInt(equipmentId), lab_id: BigInt(labId) },
+      where: { id: BigInt(equipmentId), lab_id: BigInt(labId), deleted_at: null },
     });
 
     if (!equipment) {
@@ -366,7 +417,7 @@ export class EquipmentService {
       where: {
         id: BigInt(rentalId),
         equipment_id: BigInt(equipmentId),
-        equipments: { lab_id: BigInt(labId) },
+        equipments: { lab_id: BigInt(labId), deleted_at: null },
       },
     });
 

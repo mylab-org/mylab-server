@@ -22,6 +22,8 @@ import {
   ApiDeleteEquipments,
   ApiDeleteRental,
   ApiGetEquipmentPurchases,
+  ApiGetMyEquipmentPurchases,
+  ApiGetMyRentalHistory,
   ApiGetEquipments,
   ApiGetMyRentals,
   ApiReviewEquipmentPurchases,
@@ -128,6 +130,15 @@ export class EquipmentController {
     return this.equipmentService.getMyRentals(userId, labId);
   }
 
+  @Get('rentals/me/history')
+  @ApiGetMyRentalHistory()
+  getMyRentalHistory(
+    @User('userId') userId: number,
+    @Param('labId', ParseIntPipe) labId: number,
+  ): Promise<RentalResponseDto[]> {
+    return this.equipmentService.getMyRentalHistory(userId, labId);
+  }
+
   @Post('equipment-requests')
   @ApiCreateEquipmentPurchase()
   createPurchase(
@@ -146,6 +157,16 @@ export class EquipmentController {
     @Query() query: GetEquipmentPurchasesRequestDto,
   ): Promise<EquipmentPurchaseResponseDto[]> {
     return this.equipmentService.getPurchases(userId, labId, query);
+  }
+
+  @Get('equipment-requests/me')
+  @ApiGetMyEquipmentPurchases()
+  getMyPurchases(
+    @User('userId') userId: number,
+    @Param('labId', ParseIntPipe) labId: number,
+    @Query() query: GetEquipmentPurchasesRequestDto,
+  ): Promise<EquipmentPurchaseResponseDto[]> {
+    return this.equipmentService.getMyPurchases(userId, labId, query);
   }
 
   @Patch('equipment-requests/status')
