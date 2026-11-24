@@ -16,7 +16,7 @@ import {
 export class CreateScheduleRequestDto {
   @ApiProperty({ example: 'MEETING', enum: ScheduleType, description: '일정 타입' })
   @IsEnum(ScheduleType)
-  schedule_type: ScheduleType;
+  scheduleType: ScheduleType;
 
   @ApiProperty({ example: '주간 랩미팅', description: '일정 이름 (학회명/미팅명/회식명)' })
   @IsString()
@@ -27,15 +27,15 @@ export class CreateScheduleRequestDto {
     description: '시작 일시 (학회는 시작일, 미팅/회식은 날짜+시간)',
   })
   @IsDateString()
-  start_at: string;
+  startAt: string;
 
   @ApiPropertyOptional({
     example: '2026-01-05T11:00:00.000Z',
     description: '종료 일시 (학회/미팅은 필수, 회식은 사용하지 않음)',
   })
-  @ValidateIf((o: CreateScheduleRequestDto) => o.schedule_type !== ScheduleType.LAB_DINNER)
+  @ValidateIf((o: CreateScheduleRequestDto) => o.scheduleType !== ScheduleType.LAB_DINNER)
   @IsDateString()
-  end_at?: string;
+  endAt?: string;
 
   @ApiProperty({ example: '세미나실', description: '장소' })
   @IsString()
@@ -44,14 +44,14 @@ export class CreateScheduleRequestDto {
   @ApiProperty({
     example: [1, 3, 5],
     type: [Number],
-    description: '참가 인원 (lab_member ID 목록)',
+    description: '참가 인원 (유저 ID 목록)',
   })
   @IsArray()
   @ArrayNotEmpty()
   @ArrayUnique()
   @Type(() => Number)
   @IsInt({ each: true })
-  participant_ids: number[];
+  participantIds: number[];
 
   @ApiPropertyOptional({
     example: 'WEEKLY',
@@ -60,7 +60,7 @@ export class CreateScheduleRequestDto {
   })
   @IsOptional()
   @IsEnum(RecurrenceType)
-  recurrence_type?: RecurrenceType;
+  recurrenceType?: RecurrenceType;
 
   @ApiPropertyOptional({
     example: '2026-01-28T23:59:00.000Z',
@@ -68,5 +68,5 @@ export class CreateScheduleRequestDto {
   })
   @IsOptional()
   @IsDateString()
-  submission_deadline?: string;
+  submissionDeadline?: string;
 }

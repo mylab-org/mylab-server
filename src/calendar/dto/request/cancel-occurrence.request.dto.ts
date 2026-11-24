@@ -7,5 +7,5 @@ export class CancelOccurrenceRequestDto {
     description: '취소(스킵)할 반복 일정의 원래 시작 일시',
   })
   @IsDateString()
-  occurrence_at: string;
+  occurrenceAt: string;
 }

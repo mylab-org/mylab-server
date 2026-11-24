@@ -105,12 +105,12 @@ export function ApiCalendarCancelOccurrence() {
     ApiOperation({
       summary: '반복 일정 중 하루 취소(스킵)',
       description:
-        '반복 일정(recurrence_type != NONE)에서 특정 회차만 취소(스킵) 처리. 시리즈는 삭제되지 않고, 월간 조회 시 해당 회차가 is_cancelled: true로 표시됨',
+        '반복 일정(recurrenceType != NONE)에서 특정 회차만 취소(스킵) 처리. 시리즈는 삭제되지 않고, 월간 조회 시 해당 회차가 isCancelled: true로 표시됨',
     }),
     ApiParam({ name: 'labId', description: '연구실 Id', type: Number }),
     ApiParam({ name: 'scheduleId', description: '일정 Id', type: Number }),
     ApiQuery({
-      name: 'occurrence_at',
+      name: 'occurrenceAt',
       description: '취소할 회차의 원래 시작 일시',
       example: '2026-01-05T10:00:00.000Z',
     }),

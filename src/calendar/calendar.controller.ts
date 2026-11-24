@@ -113,6 +113,6 @@ export class CalendarController {
     @Param('scheduleId', ParseIntPipe) scheduleId: number,
     @Query() query: CancelOccurrenceRequestDto,
   ): Promise<void> {
-    return this.calendarService.cancelOccurrence(userId, labId, scheduleId, query.occurrence_at);
+    return this.calendarService.cancelOccurrence(userId, labId, scheduleId, query.occurrenceAt);
   }
 }
